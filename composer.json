@@ -1,0 +1,35 @@
+{
+    "name": "ingenerator/oidc-token-verifier",
+    "description": "Lightweight library to verify OIDC tokens against a public discovery document / JWKS collection",
+    "homepage": "https://github.com/ingenerator/oidc-token-verifier",
+    "type": "library",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Andrew Coulton",
+            "email": "andrew@ingenerator.com"
+        }
+    ],
+    "require": {
+        "firebase/php-jwt": "^5.2",
+        "php": "^7.2"
+    },
+    "support": {
+        "source": "https://github.com/ingenerator/oidc-token-verifier",
+        "issues": "https://github.com/ingenerator/oidc-token-verifier/issues"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ingenerator\\OIDCTokenVerifier\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "test\\unit\\Ingenerator\\OIDCTokenVerifier\\": "test"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true
+    }
+}
