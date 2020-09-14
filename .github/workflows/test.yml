@@ -31,3 +31,7 @@ jobs:
 
       - name: Install composer dependencies
         uses: php-actions/composer@v2
+
+      - name: Run unit tests
+        run: |
+          vendor/bin/phpunit
