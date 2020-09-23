@@ -7,11 +7,22 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
     name: Run tests
+    strategy:
+      fail-fast: false
+      matrix:
+        php_version:
+          - '7.2'
+          - '7.4'
+        dependencies:
+          - 'default'
+        include:
+          - php_version: '7.2'
+            dependencies: 'lowest'
     steps:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '7.2'
+          php-version: ${{ matrix.php_version }}
           tools: composer
 
       - name: Checkout
@@ -25,12 +36,20 @@ jobs:
       - uses: actions/cache@v2
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          key: ${{ runner.os }}-composer-${{ matrix.dependencies }}-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
-            ${{ runner.os }}-composer-
+            ${{ runner.os }}-composer-${{ matrix.dependencies }}
 
       - name: Install composer dependencies
-        uses: php-actions/composer@v2
+        env:
+          DEPENDENCIES: ${{ matrix.dependencies }}
+        run: |
+          if [ $DEPENDENCIES == 'lowest' ]
+          then
+            composer update --prefer-lowest --no-interaction --no-suggest --no-progress
+          else
+            composer install --no-interaction --no-suggest --no-progress
+          fi
 
       - name: Run unit tests
         run: |
