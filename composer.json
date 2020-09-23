@@ -12,9 +12,11 @@
     ],
     "require": {
         "php": "^7.2",
+        "ext-json": "*",
+        "ext-openssl": "*",
         "firebase/php-jwt": "^5.2",
-        "psr/cache": "^1.0",
-        "psr/http-client": "^1.0"
+        "guzzlehttp/guzzle": "^6.5",
+        "psr/cache": "^1.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^8.5"
@@ -30,6 +32,7 @@
     },
     "autoload-dev": {
         "psr-4": {
+            "test\\mock\\Ingenerator\\OIDCTokenVerifier\\": "test/mock",
             "test\\unit\\Ingenerator\\OIDCTokenVerifier\\": "test/unit"
         }
     },
