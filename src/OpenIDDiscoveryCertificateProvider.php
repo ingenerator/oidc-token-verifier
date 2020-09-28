@@ -86,7 +86,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      * @param string $issuer
      *
      * @return string[]
-     * @throws \Ingenerator\OIDCTokenVerifier\OpenIDCertificateDiscoveryFailedException
+     * @throws \Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException
      */
     public function getCertificates(string $issuer): array
     {
@@ -133,7 +133,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     {
         try {
             return $this->fetchCertificates($issuer);
-        } catch (OpenIDCertificateDiscoveryFailedException $e) {
+        } catch (CertificateDiscoveryFailedException $e) {
             // @todo: Log it
             return $previous_cached;
         }
@@ -151,7 +151,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
                 'expires' => $this->calculateResponseExpiryTime($jwks_resp)
             ];
         } catch (Exception $e) {
-            throw new OpenIDCertificateDiscoveryFailedException(
+            throw new CertificateDiscoveryFailedException(
                 sprintf(
                     'Failed to fetch openid certs for `%s`: [%s] %s',
                     $issuer,

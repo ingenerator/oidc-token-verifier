@@ -5,7 +5,7 @@ namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 
 use GuzzleHttp\Psr7\Response;
-use Ingenerator\OIDCTokenVerifier\OpenIDCertificateDiscoveryFailedException;
+use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OpenIDDiscoveryCertificateProvider;
 use PHPUnit\Framework\TestCase;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
@@ -106,7 +106,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     ) {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(...$responses);
         $subj                = $this->newSubject();
-        $this->expectException(OpenIDCertificateDiscoveryFailedException::class);
+        $this->expectException(CertificateDiscoveryFailedException::class);
         $subj->getCertificates('https://anyone.com');
     }
 
