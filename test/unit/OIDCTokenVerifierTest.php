@@ -69,7 +69,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token);
+        $result  = $subject->verify($token, []);
         $this->assertFalse($result->isVerified(), 'Should not be verified');
         $this->assertStringContainsString(
             'unable to lookup correct key',
@@ -173,21 +173,61 @@ class OIDCTokenVerifierTest extends TestCase
             $result->getPayload()->aud,
             'Includes payload in result'
         );
+        $this->assertSame($payload, \json_decode(\json_encode($result->getPayload()), TRUE));
     }
 
-    public function test_it_optionally_verifies_audience_matches()
+    /**
+     * @testWith ["https://someone-elses-site.com/handler", false]
+     *           ["https://my-site.com/handler", true]
+     */
+    public function test_it_optionally_verifies_audience_matches($aud, $expect)
     {
-        $this->markTestIncomplete();
+        $token  = $this->givenTokenThatWillPassBasicVerification(['aud' => $aud]);
+        $result = $this->newSubject()->verify(
+            $token,
+            ['audience_exact' => 'https://my-site.com/handler']
+        );
+        $this->assertSame($expect, $result->isVerified());
     }
 
-    public function test_it_optionally_verifies_email_matches_exact_list()
+    /**
+     * @testWith ["my@service.acct", true]
+     *           ["differ@ent.service", false]
+     *           [["my@service.acct"], true]
+     *           [["my@service.acct", "differ@ent.service"], true]
+     *           [["an@other.svc", "differ@ent.service"], false]
+     */
+    public function test_it_optionally_verifies_email_matches_exact_list($constraint, $expect)
     {
-        $this->markTestIncomplete();
+        $token  = $this->givenTokenThatWillPassBasicVerification(['email' => 'my@service.acct']);
+        $result = $this->newSubject()->verify(
+            $token,
+            ['email_exact' => $constraint]
+        );
+        $this->assertSame($expect, $result->isVerified());
     }
 
-    public function test_it_optionally_verifies_email_matches_pattern()
+    /**
+     * @testWith ["my@service.acct", true]
+     *           ["another@service.acct", true]
+     *           ["impostor@services.accts", false]
+     */
+    public function test_it_optionally_verifies_email_matches_pattern($email, $expect)
     {
-        $this->markTestIncomplete();
+        $token  = $this->givenTokenThatWillPassBasicVerification(['email' => $email]);
+        $result = $this->newSubject()->verify(
+            $token,
+            ['email_match' => '/\@service\.acct$/']
+        );
+        $this->assertSame($expect, $result->isVerified());
+    }
+
+    public function test_it_throws_if_constraint_is_not_defined()
+    {
+        $token   = $this->givenTokenThatWillPassBasicVerification([]);
+        $subject = $this->newSubject();
+        $this->expectException(\InvalidArgumentException::class);
+        $subject->verify($token, ['undefined_custom_constraint' => 'anything']);
     }
 
     protected function newSubject(): OIDCTokenVerifier
@@ -251,5 +291,22 @@ class OIDCTokenVerifierTest extends TestCase
         string $token
     ): TokenVerificationResult {
 
+    }
+
+    /**
+     * @param array $payload
+     *
+     * @return string
+     */
+    protected function givenTokenThatWillPassBasicVerification(array $payload): string
+    {
+        $token = $this->createJwtWithKey(
+            \array_merge($payload, ['iss' => 'https://account.prov']),
+            'e762'
+        );
+        $this->givenCertProviderWithCerts('https://account.prov', ['e762']);
+        $this->expected_issuer = 'https://account.prov';
+
+        return $token;
     }
 }
