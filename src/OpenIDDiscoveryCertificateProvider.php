@@ -14,6 +14,7 @@ use InvalidArgumentException;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use function array_merge;
 use function get_class;
 use function openssl_pkey_free;
@@ -44,6 +45,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     private $options;
 
     /**
+     * @var \Psr\Log\LoggerInterface
+     */
+    private $logger;
+
+    /**
      * Options:
      *
      *   * cache_key_prefix - the prefix to apply to cache keys to keep them separate from other code
@@ -56,6 +62,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     public function __construct(
         ClientInterface $guzzle,
         CacheItemPoolInterface $cache,
+        LoggerInterface $logger,
         array $options
     ) {
         $this->guzzle  = $guzzle;
@@ -67,6 +74,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
             ],
             $options
         );
+        $this->logger  = $logger;
     }
 
     /**
@@ -134,7 +142,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         try {
             return $this->fetchCertificates($issuer);
         } catch (CertificateDiscoveryFailedException $e) {
-            // @todo: Log it
+            $this->logger->warning(
+                'Using stale certs: '.$e->getMessage(),
+                ['exception' => $e]
+            );
+
             return $previous_cached;
         }
     }

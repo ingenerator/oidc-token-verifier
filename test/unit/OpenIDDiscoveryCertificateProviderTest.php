@@ -8,6 +8,9 @@ use GuzzleHttp\Psr7\Response;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OpenIDDiscoveryCertificateProvider;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use Psr\Log\Test\TestLogger;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
 use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
 
@@ -28,6 +31,8 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     protected $guzzle_mocker;
 
     protected $options = [];
+
+    protected $log;
 
     public function test_it_is_initialisable()
     {
@@ -246,6 +251,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     public function test_if_cache_soft_expired_it_returns_previous_cached_values_on_refresh_error()
     {
+        $this->log = new NullLogger;
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
             new \DateTimeImmutable('-5 minutes')
@@ -268,10 +274,19 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     public function test_it_logs_errors_refreshing_certificates_during_grace_period()
     {
-        // When we're in the grace period, we should log warnings for any errors we swallow
-        // to give admins time to deal with any issues before we lose the ability to validate tokens
-        // (if the issue is something we can control)
-        $this->markTestIncomplete();
+        $this->log = new TestLogger;
+        $this->givenPreviouslyRequestedAndCachedJWKs(
+            'https://accounts.anyone.com',
+            new \DateTimeImmutable('-5 minutes')
+        );
+
+        $this->guzzle_mocker = GuzzleClientMocker::withResponses(
+            new Response(500, [], 'Broken')
+        );
+
+        $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $this->assertTrue($this->log->hasWarningThatMatches('/500/'));
     }
 
     protected function setUp(): void
@@ -279,6 +294,8 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         parent::setUp();
         $this->cache         = MockCacheItemPool::empty();
         $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
+        $this->log           = $this->getMockBuilder(LoggerInterface::class)->getMock();
+        $this->log->expects($this->never())->method($this->anything());
     }
 
     protected function newSubject(): OpenIDDiscoveryCertificateProvider
@@ -286,6 +303,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return new OpenIDDiscoveryCertificateProvider(
             $this->guzzle_mocker->getClient(),
             $this->cache,
+            $this->log,
             $this->options
         );
     }
