@@ -39,11 +39,38 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertInstanceOf(OpenIDDiscoveryCertificateProvider::class, $this->newSubject());
     }
 
-    public function test_it_throws_if_issuer_not_an_https_url()
+    public function test_it_throws_if_issuer_not_a_url()
     {
         $subject = $this->newSubject();
         $this->expectException(\InvalidArgumentException::class);
         $subject->getCertificates('i.am.never.valid');
+    }
+
+    /**
+     * @testWith ["http://foo.bar", {}, true]
+     *           ["http://foo.bar", {"allow_insecure": true}, false]
+     *           ["http://foo.bar", {"allow_insecure": false}, true]
+     *           ["https://foo.bar", {"allow_insecure": true}, false]
+     *           ["https://foo.bar", {"allow_insecure": false}, false]
+     */
+    public function test_it_throws_if_issuer_not_https_unless_allow_insecure($iss, $options, $expect_exception)
+    {
+        $this->options = $options;
+        if ( ! $expect_exception) {
+            $this->guzzle_mocker = GuzzleClientMocker::withResponses(
+                $this->makeDiscoveryDocResponse(),
+                $this->makeDefaultJWKSResponse()
+            );
+        }
+
+        $subject = $this->newSubject();
+
+        if ($expect_exception) {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage('Cannot auto-discover certificates');
+        }
+
+        $subject->getCertificates($iss);
     }
 
     public function provider_jwks_fetch_errors()

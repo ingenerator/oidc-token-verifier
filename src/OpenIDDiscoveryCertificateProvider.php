@@ -52,6 +52,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     /**
      * Options:
      *
+     *   * allow_insecure - whether to fetch certs from an http URL (e.g. in development environments)
      *   * cache_key_prefix - the prefix to apply to cache keys to keep them separate from other code
      *   * cache_key_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
      *
@@ -69,6 +70,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $this->cache   = $cache;
         $this->options = array_merge(
             [
+                'allow_insecure'             => FALSE,
                 'cache_key_prefix'           => 'openid_jwks',
                 'cache_refresh_grace_period' => 'PT2H'
             ],
@@ -98,11 +100,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      */
     public function getCertificates(string $issuer): array
     {
-        if ( ! preg_match('#^https://.+#', $issuer)) {
-            throw new InvalidArgumentException(
-                'Cannot auto-discover certificates: issuer must be a URL'
-            );
-        }
+        $this->validateIssuer($issuer);
 
         $cache_item = $this->checkCache($issuer);
         $prev_data  = $data = $cache_item->get();
@@ -122,6 +120,19 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         }
 
         return $data['certs'];
+    }
+
+    private function validateIssuer(string $issuer): void
+    {
+        $scheme = $this->options['allow_insecure'] ? 'https?' : 'https';
+
+        if (preg_match('#^'.$scheme.'://.+#', $issuer)) {
+            return;
+        }
+
+        throw new InvalidArgumentException(
+            "Cannot auto-discover certificates for `$issuer`: must be a $scheme:// URL"
+        );
     }
 
     /**
