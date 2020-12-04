@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "php": "^7.2",
+        "php": "^7.4",
         "ext-json": "*",
         "ext-openssl": "*",
         "firebase/php-jwt": "^5.2",
