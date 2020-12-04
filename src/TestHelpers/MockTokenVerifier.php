@@ -4,6 +4,7 @@
 namespace Ingenerator\OIDCTokenVerifier\TestHelpers;
 
 
+use Ingenerator\OIDCTokenVerifier\TokenConstraints;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Assert;
@@ -35,9 +36,9 @@ class MockTokenVerifier implements TokenVerifier
         $this->result = $result;
     }
 
-    public function verify(string $token, array $extra_constraints = []): TokenVerificationResult
+    public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult
     {
-        $this->calls[] = [$token, $extra_constraints];
+        $this->calls[] = [$token, $extra_constraints->toArray()];
         if ($this->result) {
             return $this->result;
         }

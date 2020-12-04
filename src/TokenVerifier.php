@@ -22,13 +22,11 @@ interface TokenVerifier
      * This may not be necessary if you control the email address the token is issued for (e.g. a
      * service account) and verify that instead.
      *
-     * See the OIDCTokenVerifier implementation for details of the supported extra_constraints.
-     *
-     * @param string $token
-     * @param array  $extra_constraints
+     * @param string           $token
+     * @param TokenConstraints $extra_constraints
      *
      * @return \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
      */
-    public function verify(string $token, array $extra_constraints = []): TokenVerificationResult;
+    public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult;
 
 }
