@@ -40,6 +40,28 @@ class TokenConstraintsTest extends TestCase
     }
 
     /**
+     * @testWith ["https://my.site/handler", "https://my.site/handler", true, null]
+     *           ["https://my.site/handler?foo=bar&baz=boo", "https://my.site/handler?foo=bar&baz=boo", true, null]
+     *           ["https://my.site/handler?foo=bar&baz=boo", "http://my.site/handler?foo=bar&baz=boo", true, null]
+     *           ["https://my.site/handler?foo=bar&baz=boo", "http://internal.host/handler?foo=bar&baz=boo", true, null]
+     *           ["https://my.site/anything", "http://my.site/handler", false, "[audience_path_and_query]"]
+     *           ["https://my.site/h?foo=bar&baz=boo", "http://my.site/h", false, "[audience_path_and_query]"]
+     *           ["https://my.site/h?foo=bar&baz=boo", "http://my.site/h?other=query", false, "[audience_path_and_query]"]
+     *           ["https://my.site/h?foo=bar&baz=boo", "http://my.site/wrong?foo=bar&baz=boo", false, "[audience_path_and_query]"]
+     *           ["https://my.site/h?foo=bar&baz=boo", "http://my.site/h?baz=boo&foo=bar", false, "[audience_path_and_query]"]
+     *           ["https://my.site/", "http://my.site/", true, null]
+     *           ["https://my.site/", "http://my.site/h", false, "[audience_path_and_query]"]
+     *           ["https://any.thing", "wierd corrupt url", false, "[audience_path_and_query]"]
+     */
+    public function test_it_can_validate_audience_path_and_query($constraint, $audience, $expect_valid, $expect_msg)
+    {
+        $subject    = new TokenConstraints(['audience_path_and_query' => $constraint]);
+        $token      = new \stdClass;
+        $token->aud = $audience;
+        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
+    }
+
+    /**
      * @testWith ["my@service.acct", true, null]
      *           ["differ@ent.service", false, "[email_exact]"]
      *           [["my@service.acct"], true, null]

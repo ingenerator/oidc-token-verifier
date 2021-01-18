@@ -87,6 +87,17 @@ $verifier->verify($jwt, new TokenConstraints([
     // Some google services use the URL that is being called. Others provide a custom value - an app/client ID, etc
     'audience_exact' => 'https://my.app.com/task-handler-url',
     
+    // The audience (`aud` claim) of the JWT is a URL and the path (and querystring if any) must match this value
+    // In some loadbalanced environments it's hard to detect the external protocol or hostname from an incoming
+    // request - e.g. a request to https://my.app.loadbalancer may appear to PHP as being to http://app.cluster.local.
+    // Although this can be worked round with custom headers (X_FORWARDED_PROTO etc) these introduce other risks and
+    // ultimately couple the app implementation to architectural concerns. In many cases, it's enough to verify the
+    // the resource the token was generated for (path and querystring) without caring about scheme and hostname. This
+    // alone prevents using a stolen token to perform a different operation. Cross-environment / cross-site attacks
+    // are instead protected by using different service accounts for each separate logical system so that e.g a token
+    // generated for QA cannot ever authorise that operation in production regardless of the hostnames used.
+    'audience_path_and_query' => 'http://appserver.internal/action?record_id=15',
+
     // The JWT must contain an `email` claim, and it must exactly match this value
     'email_exact' => 'my-service-account@myproject.serviceaccount.test',
     
