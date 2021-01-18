@@ -41,6 +41,7 @@ class TokenConstraints
      * Supported constraints:
      *
      *  * `audience_exact`: the token `aud` must match the provided value
+     *  * `audience_path_and_query`: the token `aud` is assumed to be a URL. The path and querystring portion must match expected value
      *  * `email_exact`: the token `email` must be present, and must match a known email / array of emails
      *  * `email_match`: the token `email` must be present, and must match the provided regex
      *
@@ -70,21 +71,31 @@ class TokenConstraints
         static $all_matchers;
         if ( ! $all_matchers) {
             $all_matchers = [
-                'audience_exact' => function (\stdClass $payload, string $expect) {
+                'audience_exact'          => function (\stdClass $payload, string $expect) {
                     return $expect === $payload->aud;
                 },
-                'email_exact'    => function (\stdClass $payload, $expect) {
+                'audience_path_and_query' => function (\stdClass $payload, string $expect) {
+                    return static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud);
+                },
+                'email_exact'             => function (\stdClass $payload, $expect) {
                     $expect = is_string($expect) ? [$expect] : $expect;
 
                     return in_array($payload->email, $expect, TRUE);
                 },
-                'email_match'    => function (\stdClass $payload, string $regex) {
+                'email_match'             => function (\stdClass $payload, string $regex) {
                     return (bool) preg_match($regex, $payload->email);
                 },
             ];
         }
 
         return $all_matchers;
+    }
+
+    private static function parseUrlPathAndQuery(string $url): string
+    {
+        $parts = \parse_url($url);
+
+        return ($parts['path'] ?? NULL).'?'.($parts['query'] ?? NULL);
     }
 
     public function toArray(): array
