@@ -1,6 +1,9 @@
 name: Run tests
 on:
   push:
+    branches:
+    # Only mainline branches, features etc are covered on the pull_request trigger
+    - '*.x'
   pull_request:
 
 jobs:
