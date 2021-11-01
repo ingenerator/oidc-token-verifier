@@ -11,7 +11,7 @@
         }
     ],
     "require": {
-        "php": "^7.4",
+        "php": "^7.4 || ~8.0.0",
         "ext-json": "*",
         "ext-openssl": "*",
         "firebase/php-jwt": "^5.2",
@@ -20,7 +20,7 @@
         "psr/log": "^1.1"
     },
     "require-dev": {
-        "phpunit/phpunit": "^8.5"
+        "phpunit/phpunit": "^9.5"
     },
     "support": {
         "source": "https://github.com/ingenerator/oidc-token-verifier",

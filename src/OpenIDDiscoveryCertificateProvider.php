@@ -203,7 +203,9 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $certs         = [];
         foreach ($key_resources as $kid => $cert) {
             $certs[$kid] = openssl_pkey_get_details($cert)['key'];
-            openssl_pkey_free($cert);
+            if (PHP_MAJOR_VERSION < 8) {
+                openssl_pkey_free($cert);
+            }
         }
 
         return $certs;

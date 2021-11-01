@@ -122,7 +122,7 @@ class OIDCTokenVerifierTest extends TestCase
         $subject = $this->newSubject();
         $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertFalse($result->isVerified(), 'Should not be verified');
-        $this->assertRegExp($expect_reason, $result->getFailure()->getMessage());
+        $this->assertMatchesRegularExpression($expect_reason, $result->getFailure()->getMessage());
     }
 
     public function test_it_fails_verification_if_payload_issuer_does_not_match_expected_issuer()
