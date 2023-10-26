@@ -4,6 +4,7 @@
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 
+use Firebase\JWT\Key;
 use GuzzleHttp\Psr7\Response;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OpenIDDiscoveryCertificateProvider;
@@ -13,6 +14,8 @@ use Psr\Log\NullLogger;
 use Psr\Log\Test\TestLogger;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
 use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
+use function array_map;
+use function openssl_pkey_get_details;
 
 class OpenIDDiscoveryCertificateProviderTest extends TestCase
 {
@@ -168,7 +171,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
 
-        $this->assertSame(
+        $this->assertSameOpenSSLPublicKeys(
             [
                 '4b83f18023a855587f942e75102251120887f725' => self::CERT_PEM_7F725,
                 '2c6fa6f5950a7ce465fcf247aa0b094828ac952c' => self::CERT_PEM_C952C,
@@ -222,7 +225,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
         $certs               = $this->newSubject()->getCertificates('https://accounts.anyone.com');
-        $this->assertSame(
+        $this->assertSameOpenSSLPublicKeys(
             [
                 '4b83f18023a855587f942e75102251120887f725' => self::CERT_PEM_7F725,
                 '2c6fa6f5950a7ce465fcf247aa0b094828ac952c' => self::CERT_PEM_C952C,
@@ -267,7 +270,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
 
         $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
-        $this->assertSame(
+        $this->assertSameOpenSSLPublicKeys(
             [
                 'd12e77e0024a861a60fa4df2efa1b9348e0c1540' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr+rlzRqEj4tjNOhEBW5X\nVafi+0S2CzHyEHM09sy6tN/c/wrrbGj6tTawzRdPpI4z6pRgND2Zb/mKV9RBQjLk\n1xWijCN4ifOZmKUAx0rnmuv2Fc5+3Re+bvnJQE79aO9mMVS4wi+RVYbUPtU6fajx\nKeOLIyzEChtwTLKR0uLotHF7JQkP/3HVBXwF0h5iElXU9ycSUTQMzcpBgT52tUlE\nJA+d5+KhXTFIg2iHnSkiT+SWwbDJW5s0iVO8gNkpFwixKqsKjuJUcx4ysBTGlwsS\nMBWlyuJpywIQozaqNb+u1ijh7vOo3tRo3iR1Mu1RDa4ssyXaZc4plQ67UiBNKzhv\n0wIDAQAB\n-----END PUBLIC KEY-----\n",
                 '1c93fa48c428560264ef0d79fc6bbd098b91fe0a' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArh8zYWxsJHX265kzfaWs\ngCBHMcNvMn4PE6xgdAgyZyQFzuJ1NqIZ3a0fItMQRHM2QzlW0VCWv4X7CObfnRJv\noHUHYQMRoUGGZytZjsRw4JjLd2mI4i7KY3VVeqOi65DGWqiZiSwUsh5404JxNu+7\nn20FBLXr3eaT56F3Mn5mLBB+o5f5/olciMXkmwTt2ef3vGhhh9E7socYOmvqQGZm\n6+Tl0epLvLurqkNrzd9TYyOcVrl4mmsRNmi7bvKXGpfXySNWOtDxFu07UVtwf1A/\n0o1wqGDmKMju7JkL598syeLgMWiwNW2rqBccjWI8FRJsVpsc3fVnuXL70bTu1A2I\nIwIDAQAB\n-----END PUBLIC KEY-----\n",
@@ -290,7 +293,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
 
-        $this->assertSame(
+        $this->assertSameOpenSSLPublicKeys(
             [
                 '4b83f18023a855587f942e75102251120887f725' => self::CERT_PEM_7F725,
                 '2c6fa6f5950a7ce465fcf247aa0b094828ac952c' => self::CERT_PEM_C952C,
@@ -478,6 +481,16 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
                 'Expires'      => $expires->format(\DateTimeInterface::RFC1123)
             ],
             \json_encode(['keys' => $keys])
+        );
+    }
+
+    private function assertSameOpenSSLPublicKeys(array $expected_certs, array $actual_certs): void
+    {
+        $this->assertSame($expected_certs,
+                          array_map(
+                              fn(Key $key) => openssl_pkey_get_details($key->getKeyMaterial())['key'],
+                              $actual_certs
+                          )
         );
     }
 

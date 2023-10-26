@@ -9,6 +9,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
 use Firebase\JWT\JWK;
+use Firebase\JWT\Key;
 use GuzzleHttp\ClientInterface;
 use InvalidArgumentException;
 use Psr\Cache\CacheItemInterface;
@@ -91,11 +92,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      * the grace period (or if there is no cached value) then errors retrieving or parsing the
      * certificates will be thrown as exceptions.
      *
-     * The returned data is a simple hash of `key_id (kid)` => `{certificate string in PEM format}`
+     * The returned data is a simple hash of `key_id (kid)` => `Firebase\JWT\Key`
      *
      * @param string $issuer
      *
-     * @return string[]
+     * @return Key[]
      * @throws \Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException
      */
     public function getCertificates(string $issuer): array
@@ -199,16 +200,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     {
         $keys_json = \GuzzleHttp\json_decode($keys->getBody(), TRUE);
 
-        $key_resources = JWK::parseKeySet($keys_json);
-        $certs         = [];
-        foreach ($key_resources as $kid => $cert) {
-            $certs[$kid] = openssl_pkey_get_details($cert)['key'];
-            if (PHP_MAJOR_VERSION < 8) {
-                openssl_pkey_free($cert);
-            }
-        }
-
-        return $certs;
+        return JWK::parseKeySet($keys_json);
     }
 
     private function calculateResponseExpiryTime(ResponseInterface $jwks_resp): DateTimeImmutable

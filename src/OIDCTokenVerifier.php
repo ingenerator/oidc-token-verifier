@@ -55,7 +55,7 @@ class OIDCTokenVerifier implements TokenVerifier
     protected function fetchCertificatesAndPerformBasicValidation(string $token): object
     {
         $certs   = $this->cert_provider->getCertificates($this->expected_issuer);
-        $payload = JWT::decode($token, $certs, ['RS256']);
+        $payload = JWT::decode($token, $certs);
 
         if ($payload->iss !== $this->expected_issuer) {
             throw new UnexpectedValueException(

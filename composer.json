@@ -14,7 +14,7 @@
         "php": "~8.0.0 || ~8.1.0 || ~8.2.0",
         "ext-json": "*",
         "ext-openssl": "*",
-        "firebase/php-jwt": "^5.2",
+        "firebase/php-jwt": "^6.0",
         "guzzlehttp/guzzle": "^7.0",
         "psr/cache": "^1.0",
         "psr/log": "^1.1"

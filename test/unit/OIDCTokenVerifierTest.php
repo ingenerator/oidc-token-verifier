@@ -5,6 +5,7 @@ namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 
 use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
 use Ingenerator\OIDCTokenVerifier\ArrayCertificateProvider;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
@@ -101,7 +102,7 @@ class OIDCTokenVerifierTest extends TestCase
 
     /**
      * @testWith [-200, -100, "/Expired token/"]
-     *           [100, 300, "/^Cannot handle token prior to/"]
+     *           [100, 300, "/^Cannot handle token (?:with iat )*prior to/"]
      */
     public function test_it_fails_verification_if_expired_or_not_yet_valid(
         $iat_offset,
@@ -201,8 +202,15 @@ class OIDCTokenVerifierTest extends TestCase
 
     protected function newSubject(): OIDCTokenVerifier
     {
+        $parsed_certs = [];
+        foreach ($this->certs as $issuer => $certs) {
+            foreach ($certs as $id => $cert) {
+                $parsed_certs[$issuer][$id] = new Key($cert, 'RS256');
+            }
+        }
+
         return new OIDCTokenVerifier(
-            new ArrayCertificateProvider($this->certs),
+            new ArrayCertificateProvider($parsed_certs),
             $this->expected_issuer
         );
     }
