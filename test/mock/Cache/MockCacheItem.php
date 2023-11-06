@@ -47,40 +47,44 @@ class MockCacheItem implements CacheItemInterface
         $this->is_hit = $is_hit;
     }
 
-    public function getKey()
+    public function getKey(): string
     {
         return $this->key;
     }
 
-    public function get()
+    public function get(): mixed
     {
         return $this->value;
     }
 
-    public function isHit()
+    public function isHit(): bool
     {
         return $this->is_hit;
     }
 
-    public function set($value)
+    public function set(mixed $value): static
     {
         $this->value = $value;
+
+        return $this;
     }
 
-    public function expiresAt($expiration)
+    public function expiresAt(?\DateTimeInterface $expiration): static
     {
         if ($expiration !== NULL) {
             Assert::assertInstanceOf(\DateTimeImmutable::class, $expiration);
         }
         $this->expires_at = $expiration;
+
+        return $this;
     }
 
-    public function expiresAfter($time)
+    public function expiresAfter(int|\DateInterval|null $time): static
     {
         throw new \BadMethodCallException;
     }
 
-    public function markAsCacheHit()
+    public function markAsCacheHit(): void
     {
         $this->is_hit = TRUE;
     }
