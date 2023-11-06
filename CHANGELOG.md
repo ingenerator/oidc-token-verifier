@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v1.1.0 (2023-11-06)
+
+* Support newer versions of PSR cache and log interfaces
+
 ## v1.0.0 (2023-10-26)
 
 * Upgrade to firebase/php-jwt: ^6.0 - in most cases this will not affect external users of this library. However, if you are directly using the included `CertificateProvider` classes note that these now return an array of `Firebase\JWT\Key` objects, not strings.
