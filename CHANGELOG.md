@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v1.2.0 (2024-10-01)
+
+* Support PHP 8.3
+
 ## v1.1.0 (2023-11-06)
 
 * Support newer versions of PSR cache and log interfaces
