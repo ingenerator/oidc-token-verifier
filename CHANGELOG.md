@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v1.3.0 (2025-02-03)
+
+* Support JWKS endpoints that do not provide an `Expires` header - cache for 10 minutes by default (customisable).
+
 ## v1.2.0 (2024-10-01)
 
 * Support PHP 8.3

@@ -56,6 +56,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      *   * allow_insecure - whether to fetch certs from an http URL (e.g. in development environments)
      *   * cache_key_prefix - the prefix to apply to cache keys to keep them separate from other code
      *   * cache_key_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
+     *   * cache_expires_if_no_header - how long to cache certificates if the provider does not provide an Expires header
      *
      * @param \GuzzleHttp\ClientInterface       $guzzle
      * @param \Psr\Cache\CacheItemPoolInterface $cache
@@ -73,7 +74,8 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
             [
                 'allow_insecure'             => FALSE,
                 'cache_key_prefix'           => 'openid_jwks',
-                'cache_refresh_grace_period' => 'PT2H'
+                'cache_refresh_grace_period' => 'PT2H',
+                'cache_expires_if_no_header' => 'PT10M',
             ],
             $options
         );
@@ -206,6 +208,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     private function calculateResponseExpiryTime(ResponseInterface $jwks_resp): DateTimeImmutable
     {
         $expires = $jwks_resp->getHeaderLine('Expires');
+
+        if ($expires === '') {
+            return (new DateTimeImmutable())
+                ->add(new DateInterval($this->options['cache_expires_if_no_header']));
+        }
 
         $res = DateTimeImmutable::createFromFormat(DateTimeInterface::RFC1123, $expires);
         if ($res === FALSE) {

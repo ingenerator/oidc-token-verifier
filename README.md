@@ -155,6 +155,10 @@ The cache lifetime is based on the `Expires` header of the JWKS response. Note t
 to) the cache headers on the OpenID Discovery Document itself. If an issuer changes their `jwks_uri` this will not be
 detected until the JWKS response itself expires.
 
+If the provider does not include an `Expires` header on their response, the result will be cached for 10 minutes by
+default. You can customise this with the `cache_expires_if_no_header` option passed to the 
+OpenIDDiscoveryCertificateProvider constructor.
+
 Occasionally, network / issuer errors might occur when fetching or refreshing certificates. Since JWKS change fairly
 infrequently, the default behaviour is to log failures but use a stale cache value for up to 2 hours. This can be
 configured with the `cache_refresh_grace_period` option to OpenIDDiscoveryCertificateProvider.
