@@ -4,6 +4,8 @@
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 
+use DateInterval;
+use DateTimeImmutable;
 use Firebase\JWT\Key;
 use GuzzleHttp\Psr7\Response;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
@@ -124,11 +126,6 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
                 $this->makeDiscoveryDocResponse(),
                 $this->makeDefaultJWKSResponse()->withHeader('Expires', 'No')
             ],
-            [
-                'jwks doc has no expires header',
-                $this->makeDiscoveryDocResponse(),
-                $this->makeDefaultJWKSResponse()->withoutHeader('Expires')
-            ]
         ];
     }
 
@@ -208,7 +205,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     ) {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             $this->makeDiscoveryDocResponse(),
-            $this->makeDefaultJWKSResponse(new \DateTimeImmutable('tomorrow 00:00:00'))
+            $this->makeDefaultJWKSResponse(new DateTimeImmutable('tomorrow 00:00:00'))
         );
 
         $this->options = \array_merge($this->options, $opts);
@@ -216,7 +213,30 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $cache_item = $this->cache->getOnlyItem();
 
-        $this->assertEquals(new \DateTimeImmutable($expect), $cache_item->getExpiresAt());
+        $this->assertEquals(new DateTimeImmutable($expect), $cache_item->getExpiresAt());
+    }
+
+    public function test_it_caches_for_grace_period_if_no_expires_header()
+    {
+        $one_hour_thirty = new DateInterval('PT1H30M');
+        $time_start = new DateTimeImmutable;
+        $this->options['cache_refresh_grace_period'] = 'PT1H';
+        $this->options['cache_expires_if_no_header'] = 'PT30M';
+
+        $this->guzzle_mocker = GuzzleClientMocker::withResponses(
+            $this->makeDiscoveryDocResponse(),
+            $this->makeDefaultJWKSResponse(NULL)
+        );
+
+        $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $cache_item = $this->cache->getOnlyItem();
+
+        // Expiry time should be more than 1h30 after the start of the test, but less than 1h30 from
+        // now.
+        $cache_expires = $cache_item->getExpiresAt();
+        $this->assertGreaterThan($time_start->add($one_hour_thirty), $cache_expires);
+        $this->assertLessThan((new DateTimeImmutable())->add($one_hour_thirty), $cache_expires);
     }
 
     public function test_if_cache_present_it_returns_cached_value_without_http_requests()
@@ -239,7 +259,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     {
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
-            new \DateTimeImmutable('-5 minutes')
+            new DateTimeImmutable('-5 minutes')
         );
 
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
@@ -284,7 +304,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->log = new NullLogger;
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
-            new \DateTimeImmutable('-5 minutes')
+            new DateTimeImmutable('-5 minutes')
         );
 
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
@@ -307,7 +327,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->log = new TestLogger;
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
-            new \DateTimeImmutable('-5 minutes')
+            new DateTimeImmutable('-5 minutes')
         );
 
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
@@ -402,7 +422,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     /**
      * @return \GuzzleHttp\Psr7\Response
      */
-    protected function makeDefaultJWKSResponse(?\DateTimeImmutable $expires = NULL): Response
+    protected function makeDefaultJWKSResponse(?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')): Response
     {
         return $this->makeJWKSResponseWithKeys(
             [
@@ -452,7 +472,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
      */
     protected function givenPreviouslyRequestedAndCachedJWKs(
         string $issuer,
-        \DateTimeImmutable $expires = NULL
+        DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')
     ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             $this->makeDiscoveryDocResponse(),
@@ -470,16 +490,18 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
      */
     protected function makeJWKSResponseWithKeys(
         array $keys,
-        ?\DateTimeImmutable $expires = NULL
+        ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')
     ): Response {
-        $expires = $expires ?? new \DateTimeImmutable('+20 minutes');
+        $headers = [
+            'Content-Type' => 'application/json; charset=UTF-8',
+        ];
+        if ($expires instanceof DateTimeImmutable) {
+            $headers['Expires'] = $expires->format(\DateTimeInterface::RFC1123);
+        }
 
         return new Response(
             200,
-            [
-                'Content-Type' => 'application/json; charset=UTF-8',
-                'Expires'      => $expires->format(\DateTimeInterface::RFC1123)
-            ],
+            $headers,
             \json_encode(['keys' => $keys])
         );
     }
