@@ -14,6 +14,7 @@ use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 
 class OIDCTokenVerifierTest extends TestCase
@@ -100,10 +101,8 @@ class OIDCTokenVerifierTest extends TestCase
         $this->assertInstanceOf(SignatureInvalidException::class, $result->getFailure());
     }
 
-    /**
-     * @testWith [-200, -100, "/Expired token/"]
-     *           [100, 300, "/^Cannot handle token (?:with iat )*prior to/"]
-     */
+    #[TestWith([-200, -100, "/Expired token/"])]
+    #[TestWith([100, 300, "/^Cannot handle token (?:with iat )*prior to/",])]
     public function test_it_fails_verification_if_expired_or_not_yet_valid(
         $iat_offset,
         $exp_offset,
@@ -146,11 +145,8 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    /**
-     * @testWith ["e762"]
-     *           ["2f42"]
-     *
-     */
+    #[TestWith(["e762"])]
+    #[TestWith(["2f42"])]
     public function test_it_passes_verification_if_issuer_matches_expectations($use_kid)
     {
         $payload = [

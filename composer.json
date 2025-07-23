@@ -11,17 +11,18 @@
         }
     ],
     "require": {
-        "php": "~8.2.0 || ~8.3.0",
+        "php": "~8.2.0 || ~8.3.0 || ~8.4.0",
         "ext-json": "*",
         "ext-openssl": "*",
         "firebase/php-jwt": "^6.0",
-        "guzzlehttp/guzzle": "^7.0",
+        "guzzlehttp/guzzle": "^7.9",
         "psr/cache": "^1.1 || ^2.0 || ^3.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
     "require-dev": {
         "fig/log-test": "^1.1",
-        "phpunit/phpunit": "^9.5.5"
+        "guzzlehttp/promises": ">=2.0.4",
+        "phpunit/phpunit": "^11.5"
     },
     "support": {
         "source": "https://github.com/ingenerator/oidc-token-verifier",
