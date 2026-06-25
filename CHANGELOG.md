@@ -1,5 +1,10 @@
 ## Unreleased
 
+## v1.5.0 (2026-06-23)
+
+* Support firebase/php-jwt:^7.0 - this fixes a potential security issue where the size of JWT encryption keys was not
+  validated. Keys that are too short to be used securely with the specified algorithm will now cause an error. 
+
 ## v1.4.0 (2025-07-22)
 
 * Support PHP 8.4
