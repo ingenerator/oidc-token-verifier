@@ -19,6 +19,7 @@ use Psr\Log\Test\TestLogger;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
 use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
 use function array_map;
+use function json_encode;
 use function openssl_pkey_get_details;
 
 class OpenIDDiscoveryCertificateProviderTest extends TestCase
@@ -93,7 +94,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
             ],
             [
                 'Discovery doc has no jwks_uri',
-                new Response(200, [], \GuzzleHttp\json_encode(['anything']))
+                new Response(200, [], json_encode(['anything']))
             ],
             [
                 'jwks doc is 404',
@@ -462,7 +463,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return new Response(
             200,
             ['Content-Type' => 'application/json; charset=UTF-8'],
-            \json_encode($discovery)
+            json_encode($discovery)
         );
     }
 
@@ -501,7 +502,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return new Response(
             200,
             $headers,
-            \json_encode(['keys' => $keys])
+            json_encode(['keys' => $keys])
         );
     }
 

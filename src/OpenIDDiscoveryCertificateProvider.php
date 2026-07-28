@@ -193,14 +193,14 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     private function discoverAndFetchJWKSuri(string $discovery_url): ResponseInterface
     {
         $discovery = $this->guzzle->request('GET', $discovery_url);
-        $discovery = \GuzzleHttp\json_decode($discovery->getBody(), TRUE);
+        $discovery = json_decode($discovery->getBody(), TRUE, flags: JSON_THROW_ON_ERROR);
 
         return $this->guzzle->request('GET', $discovery['jwks_uri']);
     }
 
     private function parseJWKSToCertsHash(ResponseInterface $keys): array
     {
-        $keys_json = \GuzzleHttp\json_decode($keys->getBody(), TRUE);
+        $keys_json = json_decode($keys->getBody(), TRUE, flags: JSON_THROW_ON_ERROR);
 
         return JWK::parseKeySet($keys_json);
     }
