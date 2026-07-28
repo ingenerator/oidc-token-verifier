@@ -16,6 +16,8 @@ use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+use function json_decode;
+use function json_encode;
 
 class OIDCTokenVerifierTest extends TestCase
 {
@@ -172,7 +174,7 @@ class OIDCTokenVerifierTest extends TestCase
             $result->getPayload()->aud,
             'Includes payload in result'
         );
-        $this->assertSame($payload, \json_decode(\json_encode($result->getPayload()), TRUE));
+        $this->assertSame($payload, json_decode(json_encode($result->getPayload()), TRUE));
     }
 
     public function test_it_passes_verification_if_token_matches_custom_constraints()

@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v1.5.1 (2026-07-28)
+
+* Use native json_decode instead of deprecated Guzzle utility functions
+
 ## v1.5.0 (2026-06-23)
 
 * Support firebase/php-jwt:^7.0 - this fixes a potential security issue where the size of JWT encryption keys was not
