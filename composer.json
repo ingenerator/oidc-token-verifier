@@ -22,7 +22,7 @@
     "require-dev": {
         "fig/log-test": "^1.1",
         "guzzlehttp/promises": ">=2.0.4",
-        "phpunit/phpunit": "^11.5"
+        "phpunit/phpunit": "^13.4"
     },
     "support": {
         "source": "https://github.com/ingenerator/oidc-token-verifier",

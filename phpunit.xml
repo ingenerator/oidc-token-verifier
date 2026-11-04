@@ -4,18 +4,17 @@
          beStrictAboutChangesToGlobalState="true"
          bootstrap="test/phpunit-bootstrap.php"
          colors="true"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.3/phpunit.xsd"
+         cacheDirectory=".phpunit.cache"
          failOnDeprecation="true"
+         failOnPhpunitDeprecation="true"
+         failOnPhpunitNotice="true"
+         failOnPhpunitWarning="true"
          failOnNotice="true"
-         failOnWarning="true"
          failOnRisky="true"
-         displayDetailsOnIncompleteTests="true"
-         displayDetailsOnSkippedTests="true"
-         displayDetailsOnTestsThatTriggerDeprecations="true"
-         displayDetailsOnPhpunitDeprecations="true"
-         displayDetailsOnTestsThatTriggerErrors="true"
-         displayDetailsOnTestsThatTriggerNotices="true"
-         displayDetailsOnTestsThatTriggerWarnings="true"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd">
+         failOnWarning="true"
+         displayDetailsOnAllIssues="true"
+>
     <source>
         <include>
             <directory>src</directory>
