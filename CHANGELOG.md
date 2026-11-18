@@ -1,5 +1,9 @@
 ## Unreleased
 
+## v1.7.0 (2026-11-18)
+
+* Add support for guzzlehttp/guzzle ^8.3
+
 ## v1.6.0 (2026-11-04)
 
 * Support PHP 8.5 and PHP 8.6
