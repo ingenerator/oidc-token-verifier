@@ -15,13 +15,12 @@
         "ext-json": "*",
         "ext-openssl": "*",
         "firebase/php-jwt": "^6.0 || ^7.0",
-        "guzzlehttp/guzzle": "^7.16",
+        "guzzlehttp/guzzle": "^7.16 || ^8.3",
         "psr/cache": "^1.1 || ^2.0 || ^3.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0"
     },
     "require-dev": {
         "fig/log-test": "^1.1",
-        "guzzlehttp/promises": ">=2.0.4",
         "phpunit/phpunit": "^13.4"
     },
     "support": {
