@@ -42,6 +42,22 @@ final class TokenConstraintsTest extends TestCase
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
     }
 
+    /**
+     * @param array<mixed> $token
+     */
+    #[TestWith([[]])]
+    #[TestWith([['aud' => true]])]
+    #[TestWith([['aud' => null]])]
+    public function testItFailsExactAudienceIfAudienceClaimMissingOrInvalid(array $token): void
+    {
+        $subject = new TokenConstraints(['audience_exact' => 'https://some.site/foo']);
+        $token = (object) $token;
+        $this->assertConstraintValidation(false, 'audience_exact', $subject, $token);
+    }
+
+    /**
+     * @param string|array<mixed> $token
+     */
     #[TestWith(['https://my.site/handler', 'https://my.site/handler', true, null])]
     #[TestWith(['https://my.site/handler?foo=bar&baz=boo', 'https://my.site/handler?foo=bar&baz=boo', true, null])]
     #[TestWith(['https://my.site/handler?foo=bar&baz=boo', 'http://my.site/handler?foo=bar&baz=boo', true, null])]
@@ -71,13 +87,15 @@ final class TokenConstraintsTest extends TestCase
     #[TestWith(['https://any.thing', 'wierd corrupt url', false, '[audience_path_and_query]'])]
     public function testItCanValidateAudiencePathAndQuery(
         string $constraint,
-        string $audience,
+        string|array $token,
         bool $expect_valid,
         ?string $expect_msg,
     ): void {
         $subject = new TokenConstraints(['audience_path_and_query' => $constraint]);
-        $token = new stdClass();
-        $token->aud = $audience;
+        if (is_string($token)) {
+            $token = ['aud' => $token];
+        }
+        $token = (object) $token;
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
     }
 
@@ -98,6 +116,18 @@ final class TokenConstraintsTest extends TestCase
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
     }
 
+    /**
+     * @param array<mixed> $token
+     */
+    #[TestWith([[]])]
+    #[TestWith([['email' => true]])]
+    public function testItFailsExactEmailIfEmailClaimMissingOrInvalid(array $token): void
+    {
+        $subject = new TokenConstraints(['email_exact' => 'any@mail.net']);
+        $token = (object) $token;
+        $this->assertConstraintValidation(false, 'email_exact', $subject, $token);
+    }
+
     #[TestWith(['/^my@service\\.acct$/', true, null])]
     #[TestWith(['/@service\\.acct$/', true, null])]
     #[TestWith(['/@prod-services.accts$/', false, '[email_match]'])]
@@ -110,6 +140,18 @@ final class TokenConstraintsTest extends TestCase
         $token = new stdClass();
         $token->email = 'my@service.acct';
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
+    }
+
+    /**
+     * @param array<mixed> $token
+     */
+    #[TestWith([[]])]
+    #[TestWith([['email' => true]])]
+    public function testItFailsEmailMatchIfEmailClaimMissingOrInvalid(array $token): void
+    {
+        $subject = new TokenConstraints(['email_match' => '/@foo.bar$/']);
+        $token = (object) $token;
+        $this->assertConstraintValidation(false, 'email_match', $subject, $token);
     }
 
     /**

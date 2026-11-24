@@ -72,8 +72,8 @@ class TokenConstraints
             throw new InvalidArgumentException(
                 sprintf(
                     'Unknown constraint types: %s',
-                    implode(',', array_diff(array_keys($constraints), array_keys($matchers)))
-                )
+                    implode(',', array_diff(array_keys($constraints), array_keys($matchers))),
+                ),
             );
         }
 
@@ -86,21 +86,51 @@ class TokenConstraints
      */
     protected static function getAllMatchers(): array
     {
-        static $all_matchers;
-        if (!$all_matchers) {
-            $all_matchers = [
-                'audience_exact' => fn (stdClass $payload, string $expect): bool => $expect === $payload->aud,
-                'audience_path_and_query' => fn (stdClass $payload, string $expect): bool => self::parseUrlPathAndQuery($expect) === self::parseUrlPathAndQuery($payload->aud),
-                'email_exact' => function (stdClass $payload, $expect): bool {
-                    $expect = is_string($expect) ? [$expect] : $expect;
+        return [
+            'audience_exact' => static fn (stdClass $payload, mixed $expect): bool => $expect === ($payload->aud ?? null),
+            'audience_path_and_query' => self::validateAudiencePathAndQuery(...),
+            'email_exact' => self::validateEmailExact(...),
+            'email_match' => self::validateEmailMatch(...),
+        ];
+    }
 
-                    return in_array($payload->email, $expect, true);
-                },
-                'email_match' => fn (stdClass $payload, string $regex): bool => (bool) preg_match($regex, $payload->email),
-            ];
+    private static function validateEmailExact(stdClass $payload, mixed $expect): bool
+    {
+        if (is_string($expect)) {
+            $expect = [$expect];
         }
 
-        return $all_matchers;
+        if (!is_array($expect)) {
+            throw new InvalidArgumentException('Invalid email_exact constraint - expected string or array');
+        }
+
+        return in_array($payload->email ?? null, $expect, true);
+    }
+
+    private static function validateEmailMatch(stdClass $payload, mixed $regex): bool
+    {
+        if (!is_string($regex)) {
+            throw new InvalidArgumentException('Invalid email_match constraint - expected a regex string');
+        }
+
+        if (!is_string($payload->email ?? null)) {
+            return false;
+        }
+
+        return (bool) preg_match($regex, $payload->email);
+    }
+
+    private static function validateAudiencePathAndQuery(stdClass $payload, mixed $expect): bool
+    {
+        if (!is_string($expect)) {
+            throw new InvalidArgumentException('Invalid audience path and query constraint - expected string');
+        }
+
+        if (!is_string($payload->aud ?? null)) {
+            return false;
+        }
+
+        return self::parseUrlPathAndQuery($payload->aud) === self::parseUrlPathAndQuery($expect);
     }
 
     private static function parseUrlPathAndQuery(string $url): string
