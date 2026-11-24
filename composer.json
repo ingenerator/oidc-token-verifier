@@ -48,6 +48,7 @@
     "scripts": {
         "cs": "php-cs-fixer fix --dry-run --verbose --diff",
         "cs-fix": "php-cs-fixer fix",
+        "phpstan": "phpstan",
         "rector": "rector --dry-run",
         "rector-fix": "rector"
     }
