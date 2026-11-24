@@ -12,11 +12,17 @@ use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
 use function array_map;
+use function array_values;
 
 final class GuzzleClientMocker
 {
     /**
-     * @var array<int, array{request: RequestInterface, response: ResponseInterface|null, error: mixed, options: array<mixed>}>
+     * @var array<int, array{
+     *     request: RequestInterface,
+     *     response: ResponseInterface|null,
+     *     error: mixed,
+     *     options: array<array-key, mixed>
+     * }>
      */
     private array $history = [];
 
@@ -24,7 +30,7 @@ final class GuzzleClientMocker
 
     public static function withResponses(Response ...$responses): static
     {
-        return new self($responses);
+        return new self(array_values($responses));
     }
 
     public static function withNoResponses(): static
@@ -40,7 +46,10 @@ final class GuzzleClientMocker
     ) {
         $mock = new MockHandler($mock_responses);
         $handler = HandlerStack::create($mock);
-        $handler->push(Middleware::history($this->history));
+        $history = [];
+        $handler->push(Middleware::history($history));
+        Assert::assertIsArray($history);
+        $this->history = &$history;
 
         $this->client = new Client(['handler' => $handler]);
     }

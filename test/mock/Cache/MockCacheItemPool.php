@@ -8,8 +8,6 @@ use PHPUnit\Framework\Assert;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
-use function current;
-
 final class MockCacheItemPool implements CacheItemPoolInterface
 {
     /**
@@ -102,8 +100,8 @@ final class MockCacheItemPool implements CacheItemPoolInterface
     public function getOnlyItem(): MockCacheItem
     {
         Assert::assertCount(1, $this->items);
-        reset($this->items);
+        $key = array_key_first($this->items);
 
-        return current($this->items);
+        return $this->items[$key];
     }
 }

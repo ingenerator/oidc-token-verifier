@@ -13,9 +13,9 @@ use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OpenIDDiscoveryCertificateProvider;
 use InvalidArgumentException;
 use Iterator;
+use OpenSSLAsymmetricKey;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -26,6 +26,9 @@ use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
 use function array_map;
 use function json_encode;
 use function openssl_pkey_get_details;
+use function openssl_pkey_get_public;
+
+use const JSON_THROW_ON_ERROR;
 
 /**
  * @phpstan-import-type TProviderOptions from OpenIDDiscoveryCertificateProvider
@@ -44,7 +47,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
      */
     private array $options = [];
 
-    private NullLogger|TestLogger|MockObject $log;
+    private LoggerInterface $log;
 
     public function testItIsInitialisable(): void
     {
@@ -99,7 +102,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
             new Response(200, [], 'I am a teapot'),
         ];
         yield 'Discovery doc has no jwks_uri' => [
-            new Response(200, [], json_encode(['anything'])),
+            new Response(200, [], json_encode(['anything'], JSON_THROW_ON_ERROR)),
         ];
         yield 'jwks doc is 404' => [
             self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
@@ -107,7 +110,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         ];
         yield 'jwks doc is not schema-valid' => [
             self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
-            new Response(200, [], json_encode(['this' => 'is junk'])),
+            new Response(200, [], json_encode(['this' => 'is junk'], JSON_THROW_ON_ERROR)),
         ];
         yield 'jwks doc has broken key data' => [
             self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
@@ -343,6 +346,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $this->newSubject()->getCertificates('https://accounts.anyone.com');
 
+        $this->assertInstanceOf(TestLogger::class, $this->log);
         $this->assertTrue($this->log->hasWarningThatMatches('/500/'));
     }
 
@@ -456,7 +460,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return new Response(
             200,
             ['Content-Type' => 'application/json; charset=UTF-8'],
-            json_encode($discovery)
+            json_encode($discovery, JSON_THROW_ON_ERROR)
         );
     }
 
@@ -489,7 +493,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return new Response(
             200,
             $headers,
-            json_encode(['keys' => $keys])
+            json_encode(['keys' => $keys], JSON_THROW_ON_ERROR)
         );
     }
 
@@ -502,9 +506,25 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertSame(
             $expected_certs,
             array_map(
-                fn (Key $key) => openssl_pkey_get_details($key->getKeyMaterial())['key'],
+                $this->getOpenSSLPublicKey(...),
                 $actual_certs
             )
         );
+    }
+
+    private function getOpenSSLPublicKey(Key $key): string
+    {
+        $key_material = $key->getKeyMaterial();
+        if (!$key_material instanceof OpenSSLAsymmetricKey) {
+            $key_material = openssl_pkey_get_public($key_material);
+        }
+
+        $this->assertInstanceOf(OpenSSLAsymmetricKey::class, $key_material);
+        $details = openssl_pkey_get_details($key_material);
+        $this->assertIsArray($details);
+        $this->assertArrayHasKey('key', $details);
+        $this->assertIsString($details['key']);
+
+        return $details['key'];
     }
 }

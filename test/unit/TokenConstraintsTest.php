@@ -113,7 +113,7 @@ final class TokenConstraintsTest extends TestCase
     }
 
     /**
-     * @param array<string, string|list<string>> $contraints
+     * @param array{email_exact: string, audience_exact: string} $contraints
      */
     #[TestWith([['email_exact' => 'foo@acct.test', 'audience_exact' => 'http://foo.bar/com'], true, null])]
     #[TestWith([['email_exact' => 'bar@acct.test', 'audience_exact' => 'http://foo.bar/com'], false, '[email_exact]'])]
