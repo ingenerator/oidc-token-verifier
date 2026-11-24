@@ -79,35 +79,32 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $subject->getCertificates($iss);
     }
 
+    /**
+     * @return iterable<string, list<Response>>
+     */
     public static function provider_jwks_fetch_errors(): array
     {
         $iss = 'https://borked-cert-provider.com';
 
         return [
-            [
-                'Discovery URL is 500',
+            'Discovery URL is 500' => [
                 new Response(500, [], 'Argh'),
             ],
-            [
-                'Discovery doc not JSON',
+            'Discovery doc not JSON' => [
                 new Response(200, [], 'I am a teapot'),
             ],
-            [
-                'Discovery doc has no jwks_uri',
+            'Discovery doc has no jwks_uri' => [
                 new Response(200, [], json_encode(['anything'])),
             ],
-            [
-                'jwks doc is 404',
+            'jwks doc is 404' => [
                 static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
                 new Response(404, [], 'I no here'),
             ],
-            [
-                'jwks doc is not schema-valid',
+            'jwks doc is not schema-valid' => [
                 static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
                 new Response(200, [], json_encode(['this' => 'is junk'])),
             ],
-            [
-                'jwks doc has broken key data',
+            'jwks doc has broken key data' => [
                 static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
                 static::makeJWKSResponseWithKeys(
                     [
@@ -122,8 +119,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
                     ]
                 ),
             ],
-            [
-                'jwks doc has invalid expires header',
+            'jwks doc has invalid expires header' => [
                 static::makeDiscoveryDocResponse(),
                 static::makeDefaultJWKSResponse()->withHeader('Expires', 'No'),
             ],
@@ -132,7 +128,6 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     #[DataProvider('provider_jwks_fetch_errors')]
     public function testItThrowsOnErrorFetchingJwksIfNoCachedValues(
-        string $case,
         Response ...$responses,
     ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(...$responses);
@@ -479,6 +474,10 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
+    /**
+     * @param array<string, string> $expected_certs
+     * @param Key[] $actual_certs
+     */
     private function assertSameOpenSSLPublicKeys(array $expected_certs, array $actual_certs): void
     {
         $this->assertSame(

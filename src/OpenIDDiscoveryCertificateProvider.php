@@ -131,6 +131,9 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         }
     }
 
+    /**
+     * @return array<string, array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}>
+     */
     private function fetchCertificates(string $issuer): array
     {
         try {
@@ -164,6 +167,9 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         return $this->guzzle->request('GET', $discovery['jwks_uri']);
     }
 
+    /**
+     * @return array<string, Key>
+     */
     private function parseJWKSToCertsHash(ResponseInterface $keys): array
     {
         $keys_json = json_decode($keys->getBody(), true, flags: JSON_THROW_ON_ERROR);
@@ -190,6 +196,9 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         return $res;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     private function cacheResult(CacheItemInterface $cache_item, array $data): void
     {
         $cache_item->set($data);

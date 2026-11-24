@@ -14,7 +14,7 @@ return RectorConfig::configure()
     ->withPreparedSets(
         codeQuality: true,
         typeDeclarations: true,
-        //        typeDeclarationDocblocks: true,
+        typeDeclarationDocblocks: true,
         //        privatization: true,
         //        phpunitCodeQuality: true
     )
