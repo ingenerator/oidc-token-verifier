@@ -4,6 +4,7 @@ namespace Ingenerator\OIDCTokenVerifier;
 
 use Exception;
 use Firebase\JWT\JWT;
+use stdClass;
 use UnexpectedValueException;
 
 class OIDCTokenVerifier implements TokenVerifier
@@ -44,7 +45,7 @@ class OIDCTokenVerifier implements TokenVerifier
         return TokenVerificationResult::createSuccess($payload);
     }
 
-    protected function fetchCertificatesAndPerformBasicValidation(string $token): object
+    protected function fetchCertificatesAndPerformBasicValidation(string $token): stdClass
     {
         $certs = $this->cert_provider->getCertificates($this->expected_issuer);
         $payload = JWT::decode($token, $certs);
