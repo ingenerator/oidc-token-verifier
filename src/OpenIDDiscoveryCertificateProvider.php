@@ -87,10 +87,10 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $this->validateIssuer($issuer);
 
         $cache_item = $this->checkCache($issuer);
-        $prev_data = $data = $cache_item->get();
+        $data = $prev_data = $cache_item->isHit() ? $cache_item->get() : null;
 
-        if ($cache_item->isHit()) {
-            if ($data['expires'] < new DateTimeImmutable()) {
+        if ($data instanceof CachedCertificateData) {
+            if ($data->expires < new DateTimeImmutable()) {
                 // Soft refresh, ignore errors
                 $data = $this->tryToRefreshCertificates($issuer, $data);
             }
@@ -99,11 +99,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
             $data = $this->fetchCertificates($issuer);
         }
 
-        if ($data['fetched'] !== ($prev_data['fetched'] ?? null)) {
+        if ($data !== $prev_data) {
             $this->cacheResult($cache_item, $data);
         }
 
-        return $data['certs'];
+        return $data->certs;
     }
 
     private function validateIssuer(string $issuer): void
@@ -124,18 +124,20 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      */
     private function checkCache(string $issuer): CacheItemInterface
     {
-        $cache_key = $this->options['cache_key_prefix'].'|'.sha1($issuer);
+        $cache_key = sprintf(
+            '%s|%s|%s',
+            $this->options['cache_key_prefix'],
+            CachedCertificateData::VERSION,
+            sha1($issuer)
+        );
 
         return $this->cache->getItem($cache_key);
     }
 
-    /**
-     * @param array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable} $previous_cached
-     *
-     * @return array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}
-     */
-    private function tryToRefreshCertificates(string $issuer, array $previous_cached): array
-    {
+    private function tryToRefreshCertificates(
+        string $issuer,
+        CachedCertificateData $previous_cached,
+    ): CachedCertificateData {
         try {
             return $this->fetchCertificates($issuer);
         } catch (CertificateDiscoveryFailedException $e) {
@@ -148,20 +150,17 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         }
     }
 
-    /**
-     * @return array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}
-     */
-    private function fetchCertificates(string $issuer): array
+    private function fetchCertificates(string $issuer): CachedCertificateData
     {
         try {
             $discovery_url = $issuer.'/.well-known/openid-configuration';
             $jwks_resp = $this->discoverAndFetchJWKSuri($discovery_url);
 
-            return [
-                'certs' => $this->parseJWKSToCertsHash($jwks_resp),
-                'fetched' => new DateTimeImmutable(),
-                'expires' => $this->calculateResponseExpiryTime($jwks_resp),
-            ];
+            return new CachedCertificateData(
+                $this->parseJWKSToCertsHash($jwks_resp),
+                new DateTimeImmutable(),
+                $this->calculateResponseExpiryTime($jwks_resp)
+            );
         } catch (Exception $e) {
             throw new CertificateDiscoveryFailedException(
                 sprintf(
@@ -213,14 +212,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         return $res;
     }
 
-    /**
-     * @param array<string, mixed> $data
-     */
-    private function cacheResult(CacheItemInterface $cache_item, array $data): void
+    private function cacheResult(CacheItemInterface $cache_item, CachedCertificateData $data): void
     {
         $cache_item->set($data);
         $cache_item->expiresAt(
-            $data['expires']->add(new DateInterval($this->options['cache_refresh_grace_period']))
+            $data->expires->add(new DateInterval($this->options['cache_refresh_grace_period']))
         );
         $this->cache->save($cache_item);
     }

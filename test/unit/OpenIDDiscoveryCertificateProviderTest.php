@@ -178,17 +178,38 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
+    public function testNumericKeyIdsArePreservedInCachedCertificates(): void
+    {
+        $jwks = json_decode((string) self::makeDefaultJWKSResponse()->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($jwks);
+        $this->assertIsArray($jwks['keys'] ?? null);
+        $this->assertIsArray($jwks['keys'][0] ?? null);
+        $jwks['keys'][0]['kid'] = '123';
+
+        $this->guzzle_mocker = GuzzleClientMocker::withResponses(
+            self::makeDiscoveryDocResponse(),
+            new Response(200, [], json_encode($jwks, JSON_THROW_ON_ERROR))
+        );
+        $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
+        $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $this->assertArrayHasKey(123, $certs);
+        $this->guzzle_mocker->assertNoRequestsSent();
+    }
+
     /**
      * @param TProviderOptions $opts
      */
-    #[TestWith(['https://accounts.anyone.com', [], 'openid_jwks|e6f867764d04c07b7fda10fd4ae7e57be5c289f5'])]
+    #[TestWith(['https://accounts.anyone.com', [], 'openid_jwks|v2|e6f867764d04c07b7fda10fd4ae7e57be5c289f5'])]
     #[TestWith([
         'https://accounts.anyone.com',
         ['cache_key_prefix' => 'custom'],
-        'custom|e6f867764d04c07b7fda10fd4ae7e57be5c289f5',
+        'custom|v2|e6f867764d04c07b7fda10fd4ae7e57be5c289f5',
     ])]
-    #[TestWith(['https://my.account.srv', [], 'openid_jwks|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1'])]
-    public function testItSetsCacheKeysBasedOnPrefixAndShaOfIssuer(
+    #[TestWith(['https://my.account.srv', [], 'openid_jwks|v2|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1'])]
+    public function testItSetsVersionedCacheKeysBasedOnPrefixAndShaOfIssuer(
         string $iss,
         array $opts,
         string $expect,
