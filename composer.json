@@ -22,7 +22,9 @@
     "require-dev": {
         "fig/log-test": "^1.1",
         "php-cs-fixer/shim": "3.95.32",
-        "phpunit/phpunit": "^13.4"
+        "phpstan/phpstan": "2.3.2",
+        "phpunit/phpunit": "^13.4",
+        "rector/rector": "2.8.1"
     },
     "support": {
         "source": "https://github.com/ingenerator/oidc-token-verifier",
@@ -45,6 +47,8 @@
     },
     "scripts": {
         "cs": "php-cs-fixer fix --dry-run --verbose --diff",
-        "cs-fix": "php-cs-fixer fix"
+        "cs-fix": "php-cs-fixer fix",
+        "rector": "rector --dry-run",
+        "rector-fix": "rector"
     }
 }
