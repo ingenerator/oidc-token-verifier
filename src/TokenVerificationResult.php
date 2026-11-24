@@ -8,27 +8,32 @@ use stdClass;
 
 final class TokenVerificationResult
 {
+    private readonly bool $is_verified;
+
+    /**
+     * @param ($payload is null ? Exception : null) $failure
+     */
     private function __construct(
-        private readonly bool $is_verified,
         private readonly ?stdClass $payload,
         private readonly ?Exception $failure,
     ) {
+        $this->is_verified = $payload instanceof stdClass;
     }
 
     /**
      * @internal
      */
-    public static function createSuccess(stdClass $payload): static
+    public static function createSuccess(stdClass $payload): self
     {
-        return new self(true, $payload, null);
+        return new self($payload, null);
     }
 
     /**
      * @internal
      */
-    public static function createFailure(Exception $e): static
+    public static function createFailure(Exception $e): self
     {
-        return new self(false, null, $e);
+        return new self(null, $e);
     }
 
     /**
@@ -56,6 +61,11 @@ final class TokenVerificationResult
         return $result;
     }
 
+    /**
+     * @phpstan-assert-if-true stdClass $this->payload
+     *
+     * @phpstan-assert-if-false Exception $this->failure
+     */
     public function isVerified(): bool
     {
         return $this->is_verified;
@@ -66,7 +76,7 @@ final class TokenVerificationResult
      */
     public function getPayload(): stdClass
     {
-        if ($this->is_verified) {
+        if ($this->payload instanceof stdClass) {
             return clone $this->payload;
         }
         throw new LogicException('Cannot access payload on failed token verification');
@@ -77,7 +87,7 @@ final class TokenVerificationResult
      */
     public function getFailure(): Exception
     {
-        if ($this->is_verified) {
+        if (!isset($this->failure)) {
             throw new LogicException('Cannot access failure on successful token verification');
         }
 
