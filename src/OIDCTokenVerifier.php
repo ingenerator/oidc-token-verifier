@@ -50,6 +50,15 @@ class OIDCTokenVerifier implements TokenVerifier
         $certs = $this->cert_provider->getCertificates($this->expected_issuer);
         $payload = JWT::decode($token, $certs);
 
+        if (!is_string($payload->iss ?? null)) {
+            throw new UnexpectedValueException(
+                sprintf(
+                    'Token issuer is not a string (got %s',
+                    json_encode($payload->iss ?? null, JSON_THROW_ON_ERROR)
+                )
+            );
+        }
+
         if ($payload->iss !== $this->expected_issuer) {
             throw new UnexpectedValueException(
                 'Mismatched token issuer: did not expect '.$payload->iss

@@ -22,7 +22,6 @@ use Psr\Log\NullLogger;
 use Psr\Log\Test\TestLogger;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
 use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
-use TypeError;
 
 use function array_map;
 use function json_decode;

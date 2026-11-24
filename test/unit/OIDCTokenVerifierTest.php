@@ -149,6 +149,26 @@ final class OIDCTokenVerifierTest extends TestCase
         );
     }
 
+    public function testItFailsVerificationIfPayloadIssuerIsNotAString(): void
+    {
+        $token = $this->createJwtWithKey(
+            [
+                'iss' => ['well', 'then'],
+            ],
+            'e762'
+        );
+        $this->givenCertProviderWithCerts('https://some.account.provider', ['e762']);
+        $this->expected_issuer = 'https://some.account.provider';
+
+        $subject = $this->newSubject();
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $this->assertFalse($result->isVerified(), 'Should not be verified');
+        $this->assertStringContainsString(
+            'Token issuer is not a string',
+            $result->getFailure()->getMessage()
+        );
+    }
+
     #[TestWith(['e762'])]
     #[TestWith(['2f42'])]
     public function testItPassesVerificationIfIssuerMatchesExpectations(string $use_kid): void
@@ -227,7 +247,7 @@ final class OIDCTokenVerifierTest extends TestCase
     }
 
     /**
-     * @param array<string, scalar> $payload
+     * @param array<string, mixed> $payload
      */
     protected function createJwtWithKey(array $payload, string $use_kid): string
     {
