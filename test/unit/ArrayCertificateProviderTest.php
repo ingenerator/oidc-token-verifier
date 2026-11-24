@@ -10,7 +10,7 @@ class ArrayCertificateProviderTest extends TestCase
 {
     protected $issuer_certs = [];
 
-     public function testItIsInitialisable(): void
+    public function testItIsInitialisable(): void
     {
         $this->assertInstanceOf(ArrayCertificateProvider::class, $this->newSubject());
     }

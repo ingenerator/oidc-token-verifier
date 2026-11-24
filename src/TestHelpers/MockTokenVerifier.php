@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ingenerator\OIDCTokenVerifier\TestHelpers;
 
 use BadMethodCallException;
@@ -38,7 +40,7 @@ class MockTokenVerifier implements TokenVerifier
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult
     {
         $this->calls[] = [$token, $extra_constraints->toArray()];
-        if ($this->result) {
+        if ($this->result instanceof TokenVerificationResult) {
             return $this->result;
         }
 

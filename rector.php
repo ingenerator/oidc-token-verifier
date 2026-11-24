@@ -12,7 +12,7 @@ return RectorConfig::configure()
     ])
     ->withRootFiles()
     ->withPreparedSets(
-        //        codeQuality: true,
+        codeQuality: true,
         typeDeclarations: true,
         //        typeDeclarationDocblocks: true,
         //        privatization: true,

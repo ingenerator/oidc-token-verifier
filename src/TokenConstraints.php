@@ -72,7 +72,7 @@ class TokenConstraints
         if (!$all_matchers) {
             $all_matchers = [
                 'audience_exact' => fn (stdClass $payload, string $expect): bool => $expect === $payload->aud,
-                'audience_path_and_query' => fn (stdClass $payload, string $expect): bool => static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud),
+                'audience_path_and_query' => fn (stdClass $payload, string $expect): bool => self::parseUrlPathAndQuery($expect) === self::parseUrlPathAndQuery($payload->aud),
                 'email_exact' => function (stdClass $payload, $expect): bool {
                     $expect = is_string($expect) ? [$expect] : $expect;
 
@@ -110,7 +110,7 @@ class TokenConstraints
             }
         }
 
-        if (!empty($failures)) {
+        if ($failures !== []) {
             throw new TokenConstraintFailureException($failures);
         }
     }

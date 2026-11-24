@@ -69,7 +69,7 @@ class MockCacheItem implements CacheItemInterface
 
     public function expiresAt(?DateTimeInterface $expiration): static
     {
-        if ($expiration !== null) {
+        if ($expiration instanceof DateTimeInterface) {
             Assert::assertInstanceOf(DateTimeImmutable::class, $expiration);
         }
         $this->expires_at = $expiration;
