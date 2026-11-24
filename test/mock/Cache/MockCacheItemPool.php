@@ -70,6 +70,7 @@ final class MockCacheItemPool implements CacheItemPoolInterface
 
     public function save(CacheItemInterface $item): bool
     {
+        Assert::assertInstanceOf(MockCacheItem::class, $item);
         $this->items[$item->getKey()] = $item;
 
         return true;
