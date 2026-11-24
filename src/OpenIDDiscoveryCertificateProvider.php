@@ -25,10 +25,7 @@ use function sprintf;
  */
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
-    /**
-     * @var array
-     */
-    private $options;
+    private array $options;
 
     /**
      * Options:

@@ -11,7 +11,7 @@ use stdClass;
 
 class TokenVerificationResultTest extends TestCase
 {
-    public function testItsStaticEnforceThrowsOnFailureResult()
+    public function testItsStaticEnforceThrowsOnFailureResult(): void
     {
         $token_exception = new Exception('Anything');
         $result = TokenVerificationResult::createFailure($token_exception);
@@ -24,27 +24,27 @@ class TokenVerificationResultTest extends TestCase
         }
     }
 
-    public function testItsStaticEnforceReturnsSuccessResult()
+    public function testItsStaticEnforceReturnsSuccessResult(): void
     {
         $result = TokenVerificationResult::createSuccess(new stdClass());
         $this->assertSame($result, TokenVerificationResult::enforce($result));
     }
 
-    public function testItThrowsOnAccessToFailureOnSuccess()
+    public function testItThrowsOnAccessToFailureOnSuccess(): void
     {
         $result = TokenVerificationResult::createSuccess(new stdClass());
         $this->expectException(LogicException::class);
         $result->getFailure();
     }
 
-    public function testItThrowsOnAccessToPayloadOnFailure()
+    public function testItThrowsOnAccessToPayloadOnFailure(): void
     {
         $result = TokenVerificationResult::createFailure(new Exception('Anything'));
         $this->expectException(LogicException::class);
         $result->getPayload();
     }
 
-    public function testItReturnsImmutablePayloadOnSuccess()
+    public function testItReturnsImmutablePayloadOnSuccess(): void
     {
         $payload = new stdClass();
         $payload->email = 'anyone@foo.com';
@@ -57,7 +57,7 @@ class TokenVerificationResultTest extends TestCase
         );
     }
 
-    public function testItReturnsFailureOnFailure()
+    public function testItReturnsFailureOnFailure(): void
     {
         $e = new Exception('Literally anything');
         $this->assertSame($e, TokenVerificationResult::createFailure($e)->getFailure());

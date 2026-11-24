@@ -33,24 +33,18 @@ class OIDCTokenVerifierTest extends TestCase
         ],
     ];
 
-    /**
-     * @var array
-     */
-    private $certs = [];
+    private array $certs = [];
 
-    /**
-     * @var string
-     */
-    private $expected_issuer = 'https://secure.provider';
+    private string $expected_issuer = 'https://secure.provider';
 
-    public function testItIsInitialisable()
+    public function testItIsInitialisable(): void
     {
         $subject = $this->newSubject();
         $this->assertInstanceOf(OIDCTokenVerifier::class, $subject);
         $this->assertInstanceOf(TokenVerifier::class, $subject);
     }
 
-    public function testItBubblesCertificateDiscoveryException()
+    public function testItBubblesCertificateDiscoveryException(): void
     {
         // This is more likely to be a network / config / system fault than an auth issue
         $this->givenCertProviderWithCerts('https://other.account.provider', ['2f42']);
@@ -64,7 +58,7 @@ class OIDCTokenVerifierTest extends TestCase
         $subject->verify($token, TokenConstraints::signatureCheckOnly());
     }
 
-    public function testItFailsVerificationIfKeyIsNotPresentInCertificates()
+    public function testItFailsVerificationIfKeyIsNotPresentInCertificates(): void
     {
         $token = $this->createJwtWithKey(
             ['iss' => 'https://some.account.provider'],
@@ -82,7 +76,7 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    public function testItFailsVerificationIfSignatureIsNotValid()
+    public function testItFailsVerificationIfSignatureIsNotValid(): void
     {
         $token = $this->createJwtWithKey(
             ['iss' => 'https://some.account.provider'],
@@ -108,7 +102,7 @@ class OIDCTokenVerifierTest extends TestCase
         $iat_offset,
         $exp_offset,
         $expect_reason,
-    ) {
+    ): void {
         $token = $this->createJwtWithKey(
             [
                 'iss' => 'https://some.account.provider',
@@ -126,7 +120,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->assertMatchesRegularExpression($expect_reason, $result->getFailure()->getMessage());
     }
 
-    public function testItFailsVerificationIfPayloadIssuerDoesNotMatchExpectedIssuer()
+    public function testItFailsVerificationIfPayloadIssuerDoesNotMatchExpectedIssuer(): void
     {
         $token = $this->createJwtWithKey(
             [
@@ -148,7 +142,7 @@ class OIDCTokenVerifierTest extends TestCase
 
     #[TestWith(['e762'])]
     #[TestWith(['2f42'])]
-    public function testItPassesVerificationIfIssuerMatchesExpectations($use_kid)
+    public function testItPassesVerificationIfIssuerMatchesExpectations($use_kid): void
     {
         $payload = [
             'aud' => 'https://foo.bar.com/anything',
@@ -176,7 +170,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->assertSame($payload, json_decode(json_encode($result->getPayload()), true));
     }
 
-    public function testItPassesVerificationIfTokenMatchesCustomConstraints()
+    public function testItPassesVerificationIfTokenMatchesCustomConstraints(): void
     {
         $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://my-site.com/handler']);
         $result = $this->newSubject()->verify(
@@ -186,7 +180,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->assertTrue($result->isVerified());
     }
 
-    public function testItFailsVerificationIfTokenFailsCustomConstraints()
+    public function testItFailsVerificationIfTokenFailsCustomConstraints(): void
     {
         $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://some-other-site.com/handler']);
         $result = $this->newSubject()->verify(

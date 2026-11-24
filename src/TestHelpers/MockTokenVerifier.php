@@ -13,19 +13,19 @@ class MockTokenVerifier implements TokenVerifier
 {
     protected $calls = [];
 
-    public static function willFailWith(Exception $e)
+    public static function willFailWith(Exception $e): static
     {
         return new static(TokenVerificationResult::createFailure($e));
     }
 
-    public static function willSucceedWith(array $token_props)
+    public static function willSucceedWith(array $token_props): static
     {
         $obj = (object) $token_props;
 
         return new static(TokenVerificationResult::createSuccess($obj));
     }
 
-    public static function notCalled()
+    public static function notCalled(): static
     {
         return new static(null);
     }
@@ -45,7 +45,7 @@ class MockTokenVerifier implements TokenVerifier
         throw new BadMethodCallException('Unexpected call to '.__METHOD__);
     }
 
-    public function assertVerifiedOnce(string $token, array $extra_constraints = [])
+    public function assertVerifiedOnce(string $token, array $extra_constraints = []): void
     {
         Assert::assertSame([[$token, $extra_constraints]], $this->calls);
     }

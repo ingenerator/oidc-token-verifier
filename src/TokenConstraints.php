@@ -71,14 +71,14 @@ class TokenConstraints
         static $all_matchers;
         if (!$all_matchers) {
             $all_matchers = [
-                'audience_exact' => fn (stdClass $payload, string $expect) => $expect === $payload->aud,
-                'audience_path_and_query' => fn (stdClass $payload, string $expect) => static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud),
-                'email_exact' => function (stdClass $payload, $expect) {
+                'audience_exact' => fn (stdClass $payload, string $expect): bool => $expect === $payload->aud,
+                'audience_path_and_query' => fn (stdClass $payload, string $expect): bool => static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud),
+                'email_exact' => function (stdClass $payload, $expect): bool {
                     $expect = is_string($expect) ? [$expect] : $expect;
 
                     return in_array($payload->email, $expect, true);
                 },
-                'email_match' => fn (stdClass $payload, string $regex) => (bool) preg_match($regex, $payload->email),
+                'email_match' => fn (stdClass $payload, string $regex): bool => (bool) preg_match($regex, $payload->email),
             ];
         }
 

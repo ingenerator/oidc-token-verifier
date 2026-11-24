@@ -85,7 +85,7 @@ class MockCacheItemPool implements CacheItemPoolInterface
         throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
-    public function listSavedKeys()
+    public function listSavedKeys(): array
     {
         return array_keys($this->items);
     }

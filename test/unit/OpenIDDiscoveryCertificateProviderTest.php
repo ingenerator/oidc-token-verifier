@@ -42,12 +42,12 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     protected $log;
 
-    public function testItIsInitialisable()
+    public function testItIsInitialisable(): void
     {
         $this->assertInstanceOf(OpenIDDiscoveryCertificateProvider::class, $this->newSubject());
     }
 
-    public function testItThrowsIfIssuerNotAUrl()
+    public function testItThrowsIfIssuerNotAUrl(): void
     {
         $subject = $this->newSubject();
         $this->expectException(InvalidArgumentException::class);
@@ -59,7 +59,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     #[TestWith(['http://foo.bar', ['allow_insecure' => false], true])]
     #[TestWith(['https://foo.bar', ['allow_insecure' => true], false])]
     #[TestWith(['https://foo.bar', ['allow_insecure' => false], false])]
-    public function testItThrowsIfIssuerNotHttpsUnlessAllowInsecure($iss, $options, $expect_exception)
+    public function testItThrowsIfIssuerNotHttpsUnlessAllowInsecure($iss, $options, $expect_exception): void
     {
         $this->options = $options;
         if (!$expect_exception) {
@@ -134,14 +134,14 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     public function testItThrowsOnErrorFetchingJwksIfNoCachedValues(
         string $case,
         Response ...$responses,
-    ) {
+    ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(...$responses);
         $subj = $this->newSubject();
         $this->expectException(CertificateDiscoveryFailedException::class);
         $subj->getCertificates('https://anyone.com');
     }
 
-    public function testIfCacheEmptyItFetchesDiscoveryDocumentToLocateJwksUri()
+    public function testIfCacheEmptyItFetchesDiscoveryDocumentToLocateJwksUri(): void
     {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             static::makeDiscoveryDocResponse('https://foo.bar.com/oauth2/v3/certs'),
@@ -158,7 +158,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function testItReturnsKeysParsedFromJwksDocumentIfCacheEmpty()
+    public function testItReturnsKeysParsedFromJwksDocumentIfCacheEmpty(): void
     {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             static::makeDiscoveryDocResponse(),
@@ -183,7 +183,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         'custom|e6f867764d04c07b7fda10fd4ae7e57be5c289f5',
     ])]
     #[TestWith(['https://my.account.srv', [], 'openid_jwks|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1'])]
-    public function testItSetsCacheKeysBasedOnPrefixAndShaOfIssuer($iss, $opts, $expect)
+    public function testItSetsCacheKeysBasedOnPrefixAndShaOfIssuer($iss, $opts, $expect): void
     {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             static::makeDiscoveryDocResponse(),
@@ -201,7 +201,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     public function testItCachesKeysWithHardTtlGracePeriodAfterExpiresTime(
         $opts,
         $expect,
-    ) {
+    ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             static::makeDiscoveryDocResponse(),
             static::makeDefaultJWKSResponse(new DateTimeImmutable('tomorrow 00:00:00'))
@@ -215,7 +215,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertEquals(new DateTimeImmutable($expect), $cache_item->getExpiresAt());
     }
 
-    public function testItCachesForGracePeriodIfNoExpiresHeader()
+    public function testItCachesForGracePeriodIfNoExpiresHeader(): void
     {
         $one_hour_thirty = new DateInterval('PT1H30M');
         $time_start = new DateTimeImmutable();
@@ -238,7 +238,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertLessThan(new DateTimeImmutable()->add($one_hour_thirty), $cache_expires);
     }
 
-    public function testIfCachePresentItReturnsCachedValueWithoutHttpRequests()
+    public function testIfCachePresentItReturnsCachedValueWithoutHttpRequests(): void
     {
         $this->givenPreviouslyRequestedAndCachedJWKs('https://accounts.anyone.com');
 
@@ -254,7 +254,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->guzzle_mocker->assertNoRequestsSent();
     }
 
-    public function testIfCacheSoftExpiredItFetchesAndCachesNewValues()
+    public function testIfCacheSoftExpiredItFetchesAndCachesNewValues(): void
     {
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
@@ -298,7 +298,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function testIfCacheSoftExpiredItReturnsPreviousCachedValuesOnRefreshError()
+    public function testIfCacheSoftExpiredItReturnsPreviousCachedValuesOnRefreshError(): void
     {
         $this->log = new NullLogger();
         $this->givenPreviouslyRequestedAndCachedJWKs(
@@ -321,7 +321,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function testItLogsErrorsRefreshingCertificatesDuringGracePeriod()
+    public function testItLogsErrorsRefreshingCertificatesDuringGracePeriod(): void
     {
         $this->log = new TestLogger();
         $this->givenPreviouslyRequestedAndCachedJWKs(

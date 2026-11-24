@@ -26,12 +26,12 @@ class GuzzleClientMocker
      */
     protected $client;
 
-    public static function withResponses(Response ...$responses)
+    public static function withResponses(Response ...$responses): static
     {
         return new static($responses);
     }
 
-    public static function withNoResponses()
+    public static function withNoResponses(): static
     {
         return new static([]);
     }
@@ -50,16 +50,16 @@ class GuzzleClientMocker
         return $this->client;
     }
 
-    public function assertNoRequestsSent()
+    public function assertNoRequestsSent(): void
     {
         Assert::assertCount(0, $this->history, 'Expected no requests to be sent');
     }
 
-    public function assertExactRequestSequence(array $expect)
+    public function assertExactRequestSequence(array $expect): void
     {
-        $requests = array_map(fn ($hist) => $hist['request'], $this->history);
+        $requests = array_map(fn (array $hist) => $hist['request'], $this->history);
         $actual = array_map(
-            fn (Request $req) => $req->getMethod().' '.$req->getUri(),
+            fn (Request $req): string => $req->getMethod().' '.$req->getUri(),
             $requests
         );
         Assert::assertSame($expect, $actual);

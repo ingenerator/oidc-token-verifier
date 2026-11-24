@@ -32,21 +32,17 @@ class TokenVerificationResult
     }
 
     /**
-     * @return static
-     *
      * @internal
      */
-    public static function createSuccess(stdClass $payload)
+    public static function createSuccess(stdClass $payload): static
     {
         return new static(true, $payload, null);
     }
 
     /**
-     * @return static
-     *
      * @internal
      */
-    public static function createFailure(Exception $e)
+    public static function createFailure(Exception $e): static
     {
         return new static(false, null, $e);
     }

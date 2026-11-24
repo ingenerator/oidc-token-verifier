@@ -10,12 +10,12 @@ class ArrayCertificateProviderTest extends TestCase
 {
     protected $issuer_certs = [];
 
-    public function testItIsInitialisable()
+     public function testItIsInitialisable(): void
     {
         $this->assertInstanceOf(ArrayCertificateProvider::class, $this->newSubject());
     }
 
-    public function testItThrowsCertificateDiscoveryFailedIfNoCertsForIssuer()
+    public function testItThrowsCertificateDiscoveryFailedIfNoCertsForIssuer(): void
     {
         $this->issuer_certs = [
             'https://some.one' => [
@@ -28,7 +28,7 @@ class ArrayCertificateProviderTest extends TestCase
         $subject->getCertificates('https://other.issuer');
     }
 
-    public function testItReturnsIssuerCertsIfConfigured()
+    public function testItReturnsIssuerCertsIfConfigured(): void
     {
         $certs = [
             '4b83f18023a855587f942e75102251120887f725' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqOpAAmY20iOCNu8c913Y\noMv01U817A/SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhX\naWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8\nPzsj+YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs/UVbqu\nrGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw+dCx4mTr+UGJe50LFUfG/bkZ18TT\nbGxHiJmqYUrnmM9LVyihM3rd/aQa5I/zBtwbMo6/ntDhiF4klYr/xgXhvGlxog0d\nEwIDAQAB\n-----END PUBLIC KEY-----\n",
@@ -38,7 +38,7 @@ class ArrayCertificateProviderTest extends TestCase
         $this->assertSame($certs, $this->newSubject()->getCertificates('https://some.one'));
     }
 
-    protected function newSubject()
+    protected function newSubject(): ArrayCertificateProvider
     {
         return new ArrayCertificateProvider($this->issuer_certs);
     }
