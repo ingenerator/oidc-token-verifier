@@ -6,10 +6,17 @@ namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Ingenerator\OIDCTokenVerifier\ArrayCertificateProvider;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
+use Ingenerator\OIDCTokenVerifier\CertificateProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @phpstan-import-type TCertificateKeyMap from CertificateProvider
+ */
 final class ArrayCertificateProviderTest extends TestCase
 {
+    /**
+     * @var array<string, TCertificateKeyMap>
+     */
     private array $issuer_certs = [];
 
     public function testItIsInitialisable(): void

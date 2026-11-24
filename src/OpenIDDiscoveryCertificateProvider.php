@@ -22,6 +22,13 @@ use function sprintf;
 /**
  * Provides the certificates required to validate OpenID Connect tokens by fetching the discovery /
  * jwk document for the issuer.
+ *
+ * @phpstan-type TProviderOptions array{
+ *   allow_insecure?: bool,
+ *   cache_key_prefix?: string,
+ *   cache_refresh_grace_period?: string,
+ *   cache_expires_if_no_header?: string
+ * }
  */
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
@@ -65,8 +72,6 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      * certificates will be thrown as exceptions.
      *
      * The returned data is a simple hash of `key_id (kid)` => `Firebase\JWT\Key`
-     *
-     * @return Key[]
      *
      * @throws CertificateDiscoveryFailedException
      */

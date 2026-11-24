@@ -4,9 +4,14 @@ namespace Ingenerator\OIDCTokenVerifier;
 
 /**
  * Simple provider for hardcoded certificates. Generally used in dev / test contexts.
+ *
+ * @phpstan-import-type TCertificateKeyMap from CertificateProvider
  */
 class ArrayCertificateProvider implements CertificateProvider
 {
+    /**
+     * @param array<string, TCertificateKeyMap> $issuer_certs
+     */
     public function __construct(
         private array $issuer_certs,
     ) {
