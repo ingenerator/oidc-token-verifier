@@ -15,8 +15,8 @@ return RectorConfig::configure()
         codeQuality: true,
         typeDeclarations: true,
         typeDeclarationDocblocks: true,
-        //        privatization: true,
-        //        phpunitCodeQuality: true
+        privatization: true,
+        phpunitCodeQuality: true
     )
     ->withPhpSets()
     ->withSkip([

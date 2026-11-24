@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
@@ -9,7 +11,7 @@ use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
-class TokenConstraintsTest extends TestCase
+final class TokenConstraintsTest extends TestCase
 {
     public function testItIsInitialisable(): void
     {

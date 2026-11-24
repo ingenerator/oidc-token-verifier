@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Exception;
@@ -9,7 +11,7 @@ use LogicException;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
-class TokenVerificationResultTest extends TestCase
+final class TokenVerificationResultTest extends TestCase
 {
     public function testItsStaticEnforceThrowsOnFailureResult(): void
     {

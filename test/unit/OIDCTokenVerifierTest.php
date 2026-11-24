@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Firebase\JWT\JWT;
@@ -18,9 +20,12 @@ use PHPUnit\Framework\TestCase;
 use function json_decode;
 use function json_encode;
 
-class OIDCTokenVerifierTest extends TestCase
+final class OIDCTokenVerifierTest extends TestCase
 {
-    protected static $keys = [
+    /**
+     * @var array<string, array<string, string>>
+     */
+    private static array $keys = [
         '2f42' => [
             'kid' => 'a76bef64925480605b2de8598174ab57f4852f42',
             'public' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7KibSE6/1DvFaIyscI1D\neTovN2NvxLHyP42UrlA1Ock2uacZa9B0nVWc106WrIDnL8KXFubFSAG4MuZhkW7N\nmtqeEkNjWWQlu4NO7pFQx22vhOsI9Yr2+bmlXyZuwfHwdG35LHxuLoYW5X7PM0dJ\nXIa/ZyZEtxa5QQAwwHF0lULn6S5tMn4PGaQDTIw70q/dpB3lOZDyXMX5AUZ6Qfbf\n+64aCLdwJLEr9jKDrP+P7SjBfVxXSCicPVPhRAf2zXEuY+thqyiuvr4EkszSr25G\nuAA9W5aDbAWjuUndyiSDjt9KIAD0N+FFFpxZBiUKCGnqJG2yg33O9taJn/KzCnOk\njwIDAQAB\n-----END PUBLIC KEY-----\n",
@@ -85,7 +90,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->certs = [
             'https://some.account.provider' => [
                 // Cert for the specified key ID is valid but not the one it was signed with
-                static::$keys['e762']['kid'] => static::$keys['2f42']['public'],
+                self::$keys['e762']['kid'] => self::$keys['2f42']['public'],
             ],
         ];
         $this->expected_issuer = 'https://some.account.provider';
@@ -210,11 +215,11 @@ class OIDCTokenVerifierTest extends TestCase
     {
         $this->certs = [];
         foreach ($cert_ids as $key) {
-            $this->certs[$issuer][static::$keys[$key]['kid']] = static::$keys[$key]['public'];
+            $this->certs[$issuer][self::$keys[$key]['kid']] = self::$keys[$key]['public'];
         }
     }
 
-    protected function createJwtWithKey(array $payload, $use_kid): string
+    protected function createJwtWithKey(array $payload, string $use_kid): string
     {
         $payload = array_merge(
             [
@@ -232,9 +237,9 @@ class OIDCTokenVerifierTest extends TestCase
 
         return JWT::encode(
             $payload,
-            static::$keys[$use_kid]['private'],
+            self::$keys[$use_kid]['private'],
             'RS256',
-            static::$keys[$use_kid]['kid']
+            self::$keys[$use_kid]['kid']
         );
     }
 

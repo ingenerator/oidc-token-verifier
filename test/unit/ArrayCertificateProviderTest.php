@@ -1,14 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Ingenerator\OIDCTokenVerifier\ArrayCertificateProvider;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use PHPUnit\Framework\TestCase;
 
-class ArrayCertificateProviderTest extends TestCase
+final class ArrayCertificateProviderTest extends TestCase
 {
-    protected $issuer_certs = [];
+    private array $issuer_certs = [];
 
     public function testItIsInitialisable(): void
     {
