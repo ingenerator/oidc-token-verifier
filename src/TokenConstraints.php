@@ -26,7 +26,14 @@ use function parse_url;
  */
 class TokenConstraints
 {
+    /**
+     * @var array<string, mixed>
+     */
     protected array $constraints = [];
+
+    /**
+     * @var array<string, callable(stdClass, mixed):bool>
+     */
     protected array $matchers;
 
     /**
@@ -48,6 +55,14 @@ class TokenConstraints
      *  * `email_exact`: the token `email` must be present, and must match a known email / array of emails
      *  * `email_match`: the token `email` must be present, and must match the provided regex
      *
+     * @param array{
+     *     audience_exact?: string,
+     *     audience_path_and_query?: string,
+     *     email_exact?: string|list<string>,
+     *     email_match?: string,
+     *     ...<string, mixed>
+     * } $constraints
+     *
      * @throws InvalidArgumentException if a constraint type is not defined
      */
     public function __construct(array $constraints)
@@ -66,6 +81,9 @@ class TokenConstraints
         $this->constraints = $constraints;
     }
 
+    /**
+     * @return array<string, callable(stdClass, mixed):bool>
+     */
     protected static function getAllMatchers(): array
     {
         static $all_matchers;
@@ -92,6 +110,9 @@ class TokenConstraints
         return ($parts['path'] ?? null).'?'.($parts['query'] ?? null);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return $this->constraints;
