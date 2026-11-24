@@ -1,12 +1,9 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
-
 
 interface TokenVerifier
 {
-
     /**
      * Verifies an OIDC token, checking:
      *
@@ -21,12 +18,6 @@ interface TokenVerifier
      * audience, to ensure that a user cannot present a valid token issued for a different service.
      * This may not be necessary if you control the email address the token is issued for (e.g. a
      * service account) and verify that instead.
-     *
-     * @param string           $token
-     * @param TokenConstraints $extra_constraints
-     *
-     * @return \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
      */
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult;
-
 }

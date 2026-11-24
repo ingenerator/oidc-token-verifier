@@ -1,12 +1,11 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
 
+use UnexpectedValueException;
 
-class TokenConstraintFailureException extends \UnexpectedValueException
+class TokenConstraintFailureException extends UnexpectedValueException
 {
-
     /**
      * TokenConstraintFailureException constructor.
      *
@@ -22,5 +21,4 @@ class TokenConstraintFailureException extends \UnexpectedValueException
             )
         );
     }
-
 }

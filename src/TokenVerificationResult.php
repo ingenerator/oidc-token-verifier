@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
-
 
 use Exception;
 use LogicException;
@@ -11,12 +9,12 @@ use stdClass;
 class TokenVerificationResult
 {
     /**
-     * @var \stdClass
+     * @var stdClass
      */
     protected $payload;
 
     /**
-     * @var \Exception
+     * @var Exception
      */
     protected $failure;
 
@@ -29,34 +27,32 @@ class TokenVerificationResult
     {
         // Just to prevent anything creating this other than with the factory methods
         $this->is_verified = $is_verified;
-        $this->payload     = $payload;
-        $this->failure     = $failure;
+        $this->payload = $payload;
+        $this->failure = $failure;
     }
 
     /**
-     * @param \stdClass $payload
-     *
      * @return static
+     *
      * @internal
      */
     public static function createSuccess(stdClass $payload)
     {
-        return new static(TRUE, $payload, NULL);
+        return new static(true, $payload, null);
     }
 
     /**
-     * @param \Exception $e
-     *
      * @return static
+     *
      * @internal
      */
     public static function createFailure(Exception $e)
     {
-        return new static(FALSE, NULL, $e);
+        return new static(false, null, $e);
     }
 
     /**
-     * Syntax sugar to ensure that a token was successfully verified before proceeding
+     * Syntax sugar to ensure that a token was successfully verified before proceeding.
      *
      * As standard the verifier returns a result and you should e.g. do `if ($result->isVerified())`
      * around the protected code. For some implementations it may be simpler to throw an exception.
@@ -69,16 +65,11 @@ class TokenVerificationResult
      *     // If the token cannot be verified an exception is thrown
      *     mail($result->getPayload()->email, 'You were verified');
      *
-     *
-     *
-     * @param \Ingenerator\OIDCTokenVerifier\TokenVerificationResult $result
-     *
-     * @return \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
-     * @throws \Ingenerator\OIDCTokenVerifier\TokenVerificationFailedException if the verification failed
+     * @throws TokenVerificationFailedException if the verification failed
      */
     public static function enforce(TokenVerificationResult $result): TokenVerificationResult
     {
-        if ( ! $result->isVerified()) {
+        if (!$result->isVerified()) {
             throw new TokenVerificationFailedException($result);
         }
 
@@ -91,8 +82,7 @@ class TokenVerificationResult
     }
 
     /**
-     * @return \stdClass
-     * @throws \LogicException if the verification failed
+     * @throws LogicException if the verification failed
      */
     public function getPayload(): stdClass
     {
@@ -103,8 +93,7 @@ class TokenVerificationResult
     }
 
     /**
-     * @return \Exception
-     * @throws \LogicException if the verification was successful
+     * @throws LogicException if the verification was successful
      */
     public function getFailure(): Exception
     {

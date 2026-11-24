@@ -1,24 +1,25 @@
 <?php
 
-
 namespace test\mock\Ingenerator\OIDCTokenVerifier\Cache;
 
-
+use BadMethodCallException;
+use DateTimeImmutable;
 use PHPUnit\Framework\Assert;
 use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 
+use function current;
+
 class MockCacheItemPool implements CacheItemPoolInterface
 {
-
     /**
-     * @var \test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItem[]
+     * @var MockCacheItem[]
      */
     protected $items = [];
 
     public static function empty(): MockCacheItemPool
     {
-        return new static;
+        return new static();
     }
 
     public function getItem(string $key): CacheItemInterface
@@ -28,43 +29,43 @@ class MockCacheItemPool implements CacheItemPoolInterface
             $item->markAsCacheHit();
 
             return $item;
-        } else {
-            return MockCacheItem::createMiss($key);
         }
+
+        return MockCacheItem::createMiss($key);
     }
 
     public function getItems(array $keys = []): iterable
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function hasItem(string $key): bool
     {
-        if ( ! isset($this->items[$key])) {
-            return FALSE;
+        if (!isset($this->items[$key])) {
+            return false;
         }
 
         $expires = $this->items[$key]->getExpiresAt();
-        if ($expires === NULL) {
-            return TRUE;
+        if ($expires === null) {
+            return true;
         }
 
-        return $expires > new \DateTimeImmutable;
+        return $expires > new DateTimeImmutable();
     }
 
     public function clear(): bool
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function deleteItem(string $key): bool
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function deleteItems(array $keys): bool
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function save(CacheItemInterface $item): bool
@@ -76,12 +77,12 @@ class MockCacheItemPool implements CacheItemPoolInterface
 
     public function saveDeferred(CacheItemInterface $item): bool
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function commit(): bool
     {
-        throw new \BadMethodCallException(__METHOD__.' not mocked');
+        throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
     public function listSavedKeys()
@@ -94,7 +95,6 @@ class MockCacheItemPool implements CacheItemPoolInterface
         Assert::assertCount(1, $this->items);
         reset($this->items);
 
-        return \current($this->items);
+        return current($this->items);
     }
-
 }

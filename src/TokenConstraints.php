@@ -1,11 +1,16 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
 
+use InvalidArgumentException;
+use stdClass;
+
+use function array_diff;
+use function array_intersect_key;
+use function parse_url;
 
 /**
- * Represents extra constraints that must also match for a token
+ * Represents extra constraints that must also match for a token.
  *
  * By default the token verifier only checks the issuer and signature. So if, for example, you are configured
  * to accept tokens issued for a google service account, it will allow *any* service account token generated for
@@ -29,8 +34,6 @@ class TokenConstraints
      *
      * *ONLY* use this in production code if you are separately validating the email address and/or audience of the
      * token in your own code (see class docs).
-     *
-     * @return TokenConstraints
      */
     public static function signatureCheckOnly(): TokenConstraints
     {
@@ -45,44 +48,41 @@ class TokenConstraints
      *  * `email_exact`: the token `email` must be present, and must match a known email / array of emails
      *  * `email_match`: the token `email` must be present, and must match the provided regex
      *
-     *
-     * @param array $constraints
-     *
-     * @throws \InvalidArgumentException if a constraint type is not defined
+     * @throws InvalidArgumentException if a constraint type is not defined
      */
     public function __construct(array $constraints)
     {
-        $matchers = \array_intersect_key(static::getAllMatchers(), $constraints);
+        $matchers = array_intersect_key(static::getAllMatchers(), $constraints);
         if (count($matchers) < count($constraints)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf(
-                    "Unknown constraint types: %s",
-                    implode(",", \array_diff(array_keys($constraints), array_keys($matchers)))
+                    'Unknown constraint types: %s',
+                    implode(',', array_diff(array_keys($constraints), array_keys($matchers)))
                 )
             );
         }
 
-        $this->matchers    = $matchers;
+        $this->matchers = $matchers;
         $this->constraints = $constraints;
     }
 
     protected static function getAllMatchers(): array
     {
         static $all_matchers;
-        if ( ! $all_matchers) {
+        if (!$all_matchers) {
             $all_matchers = [
-                'audience_exact'          => function (\stdClass $payload, string $expect) {
+                'audience_exact' => function (stdClass $payload, string $expect) {
                     return $expect === $payload->aud;
                 },
-                'audience_path_and_query' => function (\stdClass $payload, string $expect) {
+                'audience_path_and_query' => function (stdClass $payload, string $expect) {
                     return static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud);
                 },
-                'email_exact'             => function (\stdClass $payload, $expect) {
+                'email_exact' => function (stdClass $payload, $expect) {
                     $expect = is_string($expect) ? [$expect] : $expect;
 
-                    return in_array($payload->email, $expect, TRUE);
+                    return in_array($payload->email, $expect, true);
                 },
-                'email_match'             => function (\stdClass $payload, string $regex) {
+                'email_match' => function (stdClass $payload, string $regex) {
                     return (bool) preg_match($regex, $payload->email);
                 },
             ];
@@ -93,9 +93,9 @@ class TokenConstraints
 
     private static function parseUrlPathAndQuery(string $url): string
     {
-        $parts = \parse_url($url);
+        $parts = parse_url($url);
 
-        return ($parts['path'] ?? NULL).'?'.($parts['query'] ?? NULL);
+        return ($parts['path'] ?? null).'?'.($parts['query'] ?? null);
     }
 
     public function toArray(): array
@@ -104,24 +104,20 @@ class TokenConstraints
     }
 
     /**
-     * @param \stdClass $token
-     *
      * @throws TokenConstraintFailureException
      */
-    public function mustMatch(\stdClass $token): void
+    public function mustMatch(stdClass $token): void
     {
         $failures = [];
         foreach ($this->constraints as $type => $param) {
             $handler = $this->matchers[$type];
-            if ( ! $handler($token, $param)) {
+            if (!$handler($token, $param)) {
                 $failures[] = $type;
             }
         }
 
-        if ( ! empty($failures)) {
+        if (!empty($failures)) {
             throw new TokenConstraintFailureException($failures);
         }
     }
-
-
 }

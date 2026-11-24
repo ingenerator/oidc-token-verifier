@@ -1,6 +1,5 @@
 <?php
 
-
 namespace test\mock\Ingenerator\OIDCTokenVerifier;
 
 use GuzzleHttp\Client;
@@ -9,12 +8,12 @@ use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use InvalidArgumentException;
 use PHPUnit\Framework\Assert;
+
+use function array_map;
 
 class GuzzleClientMocker
 {
-
     protected $mock;
 
     /**
@@ -39,7 +38,7 @@ class GuzzleClientMocker
 
     protected function __construct(array $mock_responses)
     {
-        $mock    = new MockHandler($mock_responses);
+        $mock = new MockHandler($mock_responses);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($this->history));
 
@@ -58,12 +57,11 @@ class GuzzleClientMocker
 
     public function assertExactRequestSequence(array $expect)
     {
-        $requests = \array_map(function ($hist) { return $hist['request']; }, $this->history);
-        $actual   = \array_map(
+        $requests = array_map(function ($hist) { return $hist['request']; }, $this->history);
+        $actual = array_map(
             function (Request $req) { return $req->getMethod().' '.$req->getUri(); },
             $requests
         );
         Assert::assertSame($expect, $actual);
     }
-
 }

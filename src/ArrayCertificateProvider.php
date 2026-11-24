@@ -1,11 +1,9 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
 
-
 /**
- * Simple provider for hardcoded certificates. Generally used in dev / test contexts
+ * Simple provider for hardcoded certificates. Generally used in dev / test contexts.
  */
 class ArrayCertificateProvider implements CertificateProvider
 {
@@ -21,7 +19,7 @@ class ArrayCertificateProvider implements CertificateProvider
 
     public function getCertificates(string $issuer): array
     {
-        if ( ! isset($this->issuer_certs[$issuer])) {
+        if (!isset($this->issuer_certs[$issuer])) {
             throw new CertificateDiscoveryFailedException(
                 'No certificates configured for `'.$issuer.'`'
             );
@@ -29,5 +27,4 @@ class ArrayCertificateProvider implements CertificateProvider
 
         return $this->issuer_certs[$issuer];
     }
-
 }

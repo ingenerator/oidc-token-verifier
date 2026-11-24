@@ -1,17 +1,18 @@
 <?php
 
-
 namespace test\mock\Ingenerator\OIDCTokenVerifier\Cache;
 
-
+use BadMethodCallException;
+use DateInterval;
+use DateTimeImmutable;
+use DateTimeInterface;
 use PHPUnit\Framework\Assert;
 use Psr\Cache\CacheItemInterface;
 
 class MockCacheItem implements CacheItemInterface
 {
-
     /**
-     * @var \DateTimeImmutable|null
+     * @var DateTimeImmutable|null
      */
     protected $expires_at;
 
@@ -20,9 +21,6 @@ class MockCacheItem implements CacheItemInterface
      */
     protected $key;
 
-    /**
-     * @var mixed
-     */
     protected $value;
 
     /**
@@ -32,18 +30,18 @@ class MockCacheItem implements CacheItemInterface
 
     public static function createHit(string $key, $value): MockCacheItem
     {
-        return new static($key, $value, TRUE);
+        return new static($key, $value, true);
     }
 
     public static function createMiss(string $key): MockCacheItem
     {
-        return new static($key, NULL, FALSE);
+        return new static($key, null, false);
     }
 
     protected function __construct(string $key, $value, bool $is_hit)
     {
-        $this->key    = $key;
-        $this->value  = $value;
+        $this->key = $key;
+        $this->value = $value;
         $this->is_hit = $is_hit;
     }
 
@@ -69,29 +67,28 @@ class MockCacheItem implements CacheItemInterface
         return $this;
     }
 
-    public function expiresAt(?\DateTimeInterface $expiration): static
+    public function expiresAt(?DateTimeInterface $expiration): static
     {
-        if ($expiration !== NULL) {
-            Assert::assertInstanceOf(\DateTimeImmutable::class, $expiration);
+        if ($expiration !== null) {
+            Assert::assertInstanceOf(DateTimeImmutable::class, $expiration);
         }
         $this->expires_at = $expiration;
 
         return $this;
     }
 
-    public function expiresAfter(int|\DateInterval|null $time): static
+    public function expiresAfter(int|DateInterval|null $time): static
     {
-        throw new \BadMethodCallException;
+        throw new BadMethodCallException();
     }
 
     public function markAsCacheHit(): void
     {
-        $this->is_hit = TRUE;
+        $this->is_hit = true;
     }
 
-    public function getExpiresAt(): ?\DateTimeImmutable
+    public function getExpiresAt(): ?DateTimeImmutable
     {
         return $this->expires_at;
     }
-
 }

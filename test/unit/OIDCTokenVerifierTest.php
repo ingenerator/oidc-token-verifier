@@ -1,8 +1,6 @@
 <?php
 
-
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
-
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -16,6 +14,7 @@ use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
+
 use function json_decode;
 use function json_encode;
 
@@ -23,13 +22,13 @@ class OIDCTokenVerifierTest extends TestCase
 {
     protected static $keys = [
         '2f42' => [
-            'kid'     => "a76bef64925480605b2de8598174ab57f4852f42",
-            'public'  => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7KibSE6/1DvFaIyscI1D\neTovN2NvxLHyP42UrlA1Ock2uacZa9B0nVWc106WrIDnL8KXFubFSAG4MuZhkW7N\nmtqeEkNjWWQlu4NO7pFQx22vhOsI9Yr2+bmlXyZuwfHwdG35LHxuLoYW5X7PM0dJ\nXIa/ZyZEtxa5QQAwwHF0lULn6S5tMn4PGaQDTIw70q/dpB3lOZDyXMX5AUZ6Qfbf\n+64aCLdwJLEr9jKDrP+P7SjBfVxXSCicPVPhRAf2zXEuY+thqyiuvr4EkszSr25G\nuAA9W5aDbAWjuUndyiSDjt9KIAD0N+FFFpxZBiUKCGnqJG2yg33O9taJn/KzCnOk\njwIDAQAB\n-----END PUBLIC KEY-----\n",
+            'kid' => 'a76bef64925480605b2de8598174ab57f4852f42',
+            'public' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA7KibSE6/1DvFaIyscI1D\neTovN2NvxLHyP42UrlA1Ock2uacZa9B0nVWc106WrIDnL8KXFubFSAG4MuZhkW7N\nmtqeEkNjWWQlu4NO7pFQx22vhOsI9Yr2+bmlXyZuwfHwdG35LHxuLoYW5X7PM0dJ\nXIa/ZyZEtxa5QQAwwHF0lULn6S5tMn4PGaQDTIw70q/dpB3lOZDyXMX5AUZ6Qfbf\n+64aCLdwJLEr9jKDrP+P7SjBfVxXSCicPVPhRAf2zXEuY+thqyiuvr4EkszSr25G\nuAA9W5aDbAWjuUndyiSDjt9KIAD0N+FFFpxZBiUKCGnqJG2yg33O9taJn/KzCnOk\njwIDAQAB\n-----END PUBLIC KEY-----\n",
             'private' => "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDsqJtITr/UO8Vo\njKxwjUN5Oi83Y2/EsfI/jZSuUDU5yTa5pxlr0HSdVZzXTpasgOcvwpcW5sVIAbgy\n5mGRbs2a2p4SQ2NZZCW7g07ukVDHba+E6wj1ivb5uaVfJm7B8fB0bfksfG4uhhbl\nfs8zR0lchr9nJkS3FrlBADDAcXSVQufpLm0yfg8ZpANMjDvSr92kHeU5kPJcxfkB\nRnpB9t/7rhoIt3AksSv2MoOs/4/tKMF9XFdIKJw9U+FEB/bNcS5j62GrKK6+vgSS\nzNKvbka4AD1bloNsBaO5Sd3KJIOO30ogAPQ34UUWnFkGJQoIaeokbbKDfc721omf\n8rMKc6SPAgMBAAECggEAHuKuSVSFsoQOcmORiarV+HdAfEEM8CWtEOBAXDN5js4U\nx0vohGqTHYlzy6GlBmRYR6Jkp4d8jbYzvOjWKO3GBYSshoOm7p6kUgGEBpyOZ0iI\nVJd79teo/dRdobpZUBRsJjXIBCdFFetIB7FyByYxi9LGHgcfhql/id0lf6gO5/+w\nFtFeIzbO4mSEetBMJIiiH7jKrGu+ypOMSEER8aevRrJy73vSxCSp1JXMe0QidVMl\nWX4u95iFE/U5YR3b07KKFQxJT2+JUwq1HkwasndTmLp7FfrE+bydooSnQ2VglRnE\nn1XLMMZG13UGgaxTN0K9rOwxMPJOJBO9HGcUPdndeQKBgQD4Lhd9RGWCiNJ3LuZA\nUz+fhyJZk14T9UqxhOE/8ocG4J/Otji6OVXFWo6cHw4zn2nB7aMYnXRtWpQcSX0q\n8ncQkVccLuGvJmUyXCIX1bxnKp41YOt524a5cc7Mk0mEz68J4YWof/+qp9lCs/Vo\nfysFNYsSp4DQu27oEkKEIrV3bQKBgQD0HZQzKurXastLqhdkcOYPtaIhNUlPiKo3\nHpxqJfawelWhfuPPZEP3MoDxbgSVo0VWpD2Gr/yvkydKbk7n8addI5dnSTCOrZEt\nLHvUAVpLEBbhQ7vrd/btawAOqy2a+PHiDE4GOzwJThx+AtgOYLDA91RrNN5XU0Nw\nV7eG549iawKBgB0dCxRe2amec1IX5lrVaTlFmPn5F6gvtjts4x+lS8G6yARvy+fM\nogssvF4EJp5XrQha4C8bCXVqksVeuZg4KU+APT/JICBz2Js3w6gYIqnXjgek/vqk\njgFjIGdPP+iclGQMWKmTmmJinlH82mUPxfQue8oMbEgQNMp0mej2SWNhAoGAXH3k\ni+qD5jC5bCa7DDxWfrdEAa8N4suWKqI3g2R07nK7hR/tssN7mOqSvmb/565f9C7w\nfNqrM97ecS4QSYNe9UQp9mFdu4F50xLaq/4DNxOWh61BQztF3LjA4c3rzp7qDsq4\nuVWyLphg5UGwmOn7rnFHlAMJBy8uCx/BEqUjx5cCgYEArsVP+Odjbasckmkhwx0q\nMCbKgFMOn2bfxd24x+6rhsxQMUiArYXlEOcFtjuTC+wRvqgSf+JE3HLytp2u3Hj+\nD2zDyJK8pSRtcnBC6HMgZlHYOWO2nI5nb2fahN3UXPw7AFdKUcVK0lYFVD5/aFsa\nxtSUhSizYz8XA9Um6ucJL68=\n-----END PRIVATE KEY-----\n",
         ],
         'e762' => [
-            'kid'     => "7805d97db03669f8a1df1044661df53bb3dce762",
-            'public'  => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqRWSu8hGrphVqYrvauDf\nhqiXBE+xovY1D+SdQq26+C/XHHltVXOCyp/T8oRqe/kWYLZTA4Fn8EmZpU4IKFli\nT9e0GzOpWbjTpKWSKznZFDoR5ZRZkGvPEwDuKY8xfyiA9+I5xCHTdyWgL8pyhcv5\nneMrWDkVaVg763OZsp9MTHsSR3sSYXm0oSJzxduW6OF28T6yHw1/0s9UiBY/Itf+\nQXAUn74kUyrgcb5wTAWKCoxNLd5IcddFFrs+ij6Jx09xZ8YvzBhmKa4nOC0h//uu\nwzMzQrMj9U8GcAwrESVc+Fuj13aEjkz2yI6H758i/oVzvqwJ7EogxWkaZBVmlHgi\nUwIDAQAB\n-----END PUBLIC KEY-----\n",
+            'kid' => '7805d97db03669f8a1df1044661df53bb3dce762',
+            'public' => "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqRWSu8hGrphVqYrvauDf\nhqiXBE+xovY1D+SdQq26+C/XHHltVXOCyp/T8oRqe/kWYLZTA4Fn8EmZpU4IKFli\nT9e0GzOpWbjTpKWSKznZFDoR5ZRZkGvPEwDuKY8xfyiA9+I5xCHTdyWgL8pyhcv5\nneMrWDkVaVg763OZsp9MTHsSR3sSYXm0oSJzxduW6OF28T6yHw1/0s9UiBY/Itf+\nQXAUn74kUyrgcb5wTAWKCoxNLd5IcddFFrs+ij6Jx09xZ8YvzBhmKa4nOC0h//uu\nwzMzQrMj9U8GcAwrESVc+Fuj13aEjkz2yI6H758i/oVzvqwJ7EogxWkaZBVmlHgi\nUwIDAQAB\n-----END PUBLIC KEY-----\n",
             'private' => "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCpFZK7yEaumFWp\niu9q4N+GqJcET7Gi9jUP5J1Crbr4L9cceW1Vc4LKn9PyhGp7+RZgtlMDgWfwSZml\nTggoWWJP17QbM6lZuNOkpZIrOdkUOhHllFmQa88TAO4pjzF/KID34jnEIdN3JaAv\nynKFy/md4ytYORVpWDvrc5myn0xMexJHexJhebShInPF25bo4XbxPrIfDX/Sz1SI\nFj8i1/5BcBSfviRTKuBxvnBMBYoKjE0t3khx10UWuz6KPonHT3Fnxi/MGGYpric4\nLSH/+67DMzNCsyP1TwZwDCsRJVz4W6PXdoSOTPbIjofvnyL+hXO+rAnsSiDFaRpk\nFWaUeCJTAgMBAAECggEANKhNTEHxEUrL0sM8ELL7qfozHdqb3b6Dg/GUsEFeqxBr\nE6kVTbltkCD6ZtqqNvW57GCbtcnFTuX8/agxji9YGLl6k8YhBZoz/2C5BtE7M7tp\n+2+Z/Qo2MRrnEPZRWeKJV6mSh+xo6QBExN1tkRGXKX6n7w/IBUi/UHJt+Vz27BIe\nUQnrJesDyGRp8NTmjJShXrQTpqzTu6lTyCWDugHXlCI7iVqDJnkOaQEZICi5qz0s\nHZnMav7BFRqtcqXcy6bgesivmx+8shk1jCFRgN/A7ZMMX02HSGIDKbaQLeEBBnHe\nmzjo+BqsMIS90JvwdiZ/tB1dwrIuGcY0MNkGf4SsMQKBgQDXtTilZfmhidSAXSUu\nuJ1DxWttObWMd+hbiZPouSDxgppfpIUHHrmsea54CWWiDP9KspfcKEwcvgUt/85+\nuEwKd1zCp8mMyZ7bq3fBLXW7sw9TbgYYfAygmGSrPJhwS2wijL0DPxUnlyKlvL1C\nwupsNPDwR8xGET0rg4N9ZLe7hwKBgQDIquQGlaADMbE1/v2bq8YYL/I+3alMba2b\nyDt/O8NsGL6VAJDVJXA2rXA/SYzX3FoRks584lN9ylPY1XPjZ3g/9cpnJhJ+vhUR\nvDwxjvOaCswTLUew6k330dzoge2kz9GQh8OplZzzjWybXWFy1TGLtQPzYtFhPTx9\nefqm7aLN1QKBgENKCO2vrfuyX1PbuqmkdYqanzRneDblgNptRHKorZopP7buP4FF\nGG6xVrejVs0CePD4XV8UQwoETOFYlzX4j+AD9C/U347HpoKoLqdYYw22geVowQYK\nTHYck+rG8Fa3cHgmpx/IIfVDtE83XWLiIva2XSLXguWoowhb8jy/moEpAoGBAIjE\nCFQAiKWEqc4uc7U01vfHPejg9LFVk1y4lOx71A6JsuMlFpFfSeLKRNWtkGPTGEQf\n9cIiE1uJmaoQmUKlU8zr/b5dsX9WmE+VJsV0M82KjFqJovIOT4OXMmP5ofmRdrh1\n/8JGaUmJ2zrs4yz75x/cCMxKToBi1yaCC3bYQfzdAoGANcaAN9lRi7J2GsCq2jr8\nPmvxQm64RcVotmX/7ePjOr0+t8UIkHvwE0b8Kfgah25a+m/43vK2B8qaaqoZQuHb\nZgu+QHF06FCwA8rM4GMNFtd9vEgWM1kYPGPorrWuWGpTlPZFFjr5xgo973WLqwoV\nQKnB4qM3XyFDOMSs/nb/OBo=\n-----END PRIVATE KEY-----\n",
         ],
     ];
@@ -44,28 +43,28 @@ class OIDCTokenVerifierTest extends TestCase
      */
     private $expected_issuer = 'https://secure.provider';
 
-    public function test_it_is_initialisable()
+    public function testItIsInitialisable()
     {
         $subject = $this->newSubject();
         $this->assertInstanceOf(OIDCTokenVerifier::class, $subject);
         $this->assertInstanceOf(TokenVerifier::class, $subject);
     }
 
-    public function test_it_bubbles_certificate_discovery_exception()
+    public function testItBubblesCertificateDiscoveryException()
     {
         // This is more likely to be a network / config / system fault than an auth issue
         $this->givenCertProviderWithCerts('https://other.account.provider', ['2f42']);
         $this->expected_issuer = 'https://some.account.provider';
-        $token                 = $this->createJwtWithKey(
+        $token = $this->createJwtWithKey(
             ['iss' => 'https://some.account.provider'],
             '2f42'
         );
-        $subject               = $this->newSubject();
+        $subject = $this->newSubject();
         $this->expectException(CertificateDiscoveryFailedException::class);
         $subject->verify($token, TokenConstraints::signatureCheckOnly());
     }
 
-    public function test_it_fails_verification_if_key_is_not_present_in_certificates()
+    public function testItFailsVerificationIfKeyIsNotPresentInCertificates()
     {
         $token = $this->createJwtWithKey(
             ['iss' => 'https://some.account.provider'],
@@ -75,7 +74,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertFalse($result->isVerified(), 'Should not be verified');
         $this->assertStringContainsString(
             'unable to lookup correct key',
@@ -83,13 +82,13 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    public function test_it_fails_verification_if_signature_is_not_valid()
+    public function testItFailsVerificationIfSignatureIsNotValid()
     {
-        $token                 = $this->createJwtWithKey(
+        $token = $this->createJwtWithKey(
             ['iss' => 'https://some.account.provider'],
             'e762'
         );
-        $this->certs           = [
+        $this->certs = [
             'https://some.account.provider' => [
                 // Cert for the specified key ID is valid but not the one it was signed with
                 static::$keys['e762']['kid'] => static::$keys['2f42']['public'],
@@ -98,17 +97,17 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertFalse($result->isVerified(), 'Should not be verified');
         $this->assertInstanceOf(SignatureInvalidException::class, $result->getFailure());
     }
 
-    #[TestWith([-200, -100, "/Expired token/"])]
-    #[TestWith([100, 300, "/^Cannot handle token (?:with iat )*prior to/",])]
-    public function test_it_fails_verification_if_expired_or_not_yet_valid(
+    #[TestWith([-200, -100, '/Expired token/'])]
+    #[TestWith([100, 300, '/^Cannot handle token (?:with iat )*prior to/'])]
+    public function testItFailsVerificationIfExpiredOrNotYetValid(
         $iat_offset,
         $exp_offset,
-        $expect_reason
+        $expect_reason,
     ) {
         $token = $this->createJwtWithKey(
             [
@@ -122,12 +121,12 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertFalse($result->isVerified(), 'Should not be verified');
         $this->assertMatchesRegularExpression($expect_reason, $result->getFailure()->getMessage());
     }
 
-    public function test_it_fails_verification_if_payload_issuer_does_not_match_expected_issuer()
+    public function testItFailsVerificationIfPayloadIssuerDoesNotMatchExpectedIssuer()
     {
         $token = $this->createJwtWithKey(
             [
@@ -139,7 +138,7 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertFalse($result->isVerified(), 'Should not be verified');
         $this->assertStringContainsString(
             'Mismatched token issuer',
@@ -147,19 +146,19 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    #[TestWith(["e762"])]
-    #[TestWith(["2f42"])]
-    public function test_it_passes_verification_if_issuer_matches_expectations($use_kid)
+    #[TestWith(['e762'])]
+    #[TestWith(['2f42'])]
+    public function testItPassesVerificationIfIssuerMatchesExpectations($use_kid)
     {
         $payload = [
-            'aud'            => 'https://foo.bar.com/anything',
-            'azp'            => 'any-authorized-party-value',
-            'email'          => 'my-email-account@wherever.com',
+            'aud' => 'https://foo.bar.com/anything',
+            'azp' => 'any-authorized-party-value',
+            'email' => 'my-email-account@wherever.com',
             'email_verified' => 1,
-            'exp'            => time() + 3600,
-            'iat'            => time(),
-            'iss'            => 'https://some.account.provider',
-            'sub'            => 'any-user-id',
+            'exp' => time() + 3600,
+            'iat' => time(),
+            'iss' => 'https://some.account.provider',
+            'sub' => 'any-user-id',
         ];
 
         $token = $this->createJwtWithKey($payload, $use_kid);
@@ -167,19 +166,19 @@ class OIDCTokenVerifierTest extends TestCase
         $this->expected_issuer = 'https://some.account.provider';
 
         $subject = $this->newSubject();
-        $result  = $subject->verify($token, TokenConstraints::signatureCheckOnly());
+        $result = $subject->verify($token, TokenConstraints::signatureCheckOnly());
         $this->assertTrue($result->isVerified(), 'Result should be verified');
         $this->assertSame(
             'https://foo.bar.com/anything',
             $result->getPayload()->aud,
             'Includes payload in result'
         );
-        $this->assertSame($payload, json_decode(json_encode($result->getPayload()), TRUE));
+        $this->assertSame($payload, json_decode(json_encode($result->getPayload()), true));
     }
 
-    public function test_it_passes_verification_if_token_matches_custom_constraints()
+    public function testItPassesVerificationIfTokenMatchesCustomConstraints()
     {
-        $token  = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://my-site.com/handler']);
+        $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://my-site.com/handler']);
         $result = $this->newSubject()->verify(
             $token,
             new TokenConstraints(['audience_exact' => 'http://my-site.com/handler'])
@@ -187,9 +186,9 @@ class OIDCTokenVerifierTest extends TestCase
         $this->assertTrue($result->isVerified());
     }
 
-    public function test_it_fails_verification_if_token_fails_custom_constraints()
+    public function testItFailsVerificationIfTokenFailsCustomConstraints()
     {
-        $token  = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://some-other-site.com/handler']);
+        $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://some-other-site.com/handler']);
         $result = $this->newSubject()->verify(
             $token,
             new TokenConstraints(['audience_exact' => 'http://my-site.com/handler'])
@@ -213,10 +212,6 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    /**
-     * @param string $issuer
-     * @param array  $cert_ids
-     */
     protected function givenCertProviderWithCerts(string $issuer, array $cert_ids): void
     {
         $this->certs = [];
@@ -225,24 +220,18 @@ class OIDCTokenVerifierTest extends TestCase
         }
     }
 
-    /**
-     * @param array $payload
-     * @param       $use_kid
-     *
-     * @return string
-     */
     protected function createJwtWithKey(array $payload, $use_kid): string
     {
         $payload = array_merge(
             [
-                'aud'            => 'https://foo.bar.com/anything',
-                'azp'            => 'any-authorized-party-value',
-                'email'          => 'my-email-account@wherever.com',
+                'aud' => 'https://foo.bar.com/anything',
+                'azp' => 'any-authorized-party-value',
+                'email' => 'my-email-account@wherever.com',
                 'email_verified' => 1,
-                'exp'            => time() + 3600,
-                'iat'            => time(),
-                'iss'            => 'https://some.account.provider',
-                'sub'            => 'any-user-id',
+                'exp' => time() + 3600,
+                'iat' => time(),
+                'iss' => 'https://some.account.provider',
+                'sub' => 'any-user-id',
             ],
             $payload
         );
@@ -255,24 +244,12 @@ class OIDCTokenVerifierTest extends TestCase
         );
     }
 
-    /**
-     * @param \Ingenerator\OIDCTokenVerifier\OIDCTokenVerifier $subject
-     * @param string                                           $token
-     *
-     * @return \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
-     */
     protected function assertFailsVerification(
         OIDCTokenVerifier $subject,
-        string $token
+        string $token,
     ): TokenVerificationResult {
-
     }
 
-    /**
-     * @param array $payload
-     *
-     * @return string
-     */
     protected function givenTokenThatWillPassBasicVerification(array $payload): string
     {
         $token = $this->createJwtWithKey(

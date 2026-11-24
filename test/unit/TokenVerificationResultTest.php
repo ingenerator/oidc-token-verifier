@@ -1,20 +1,20 @@
 <?php
 
-
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
-
+use Exception;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationFailedException;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
+use LogicException;
 use PHPUnit\Framework\TestCase;
+use stdClass;
 
 class TokenVerificationResultTest extends TestCase
 {
-
-    public function test_its_static_enforce_throws_on_failure_result()
+    public function testItsStaticEnforceThrowsOnFailureResult()
     {
-        $token_exception = new \Exception('Anything');
-        $result          = TokenVerificationResult::createFailure($token_exception);
+        $token_exception = new Exception('Anything');
+        $result = TokenVerificationResult::createFailure($token_exception);
         try {
             TokenVerificationResult::enforce($result);
             $this->fail('Should throw');
@@ -24,29 +24,29 @@ class TokenVerificationResultTest extends TestCase
         }
     }
 
-    public function test_its_static_enforce_returns_success_result()
+    public function testItsStaticEnforceReturnsSuccessResult()
     {
-        $result = TokenVerificationResult::createSuccess(new \stdClass);
+        $result = TokenVerificationResult::createSuccess(new stdClass());
         $this->assertSame($result, TokenVerificationResult::enforce($result));
     }
 
-    public function test_it_throws_on_access_to_failure_on_success()
+    public function testItThrowsOnAccessToFailureOnSuccess()
     {
-        $result = TokenVerificationResult::createSuccess(new \stdClass);
-        $this->expectException(\LogicException::class);
+        $result = TokenVerificationResult::createSuccess(new stdClass());
+        $this->expectException(LogicException::class);
         $result->getFailure();
     }
 
-    public function test_it_throws_on_access_to_payload_on_failure()
+    public function testItThrowsOnAccessToPayloadOnFailure()
     {
-        $result = TokenVerificationResult::createFailure(new \Exception('Anything'));
-        $this->expectException(\LogicException::class);
+        $result = TokenVerificationResult::createFailure(new Exception('Anything'));
+        $this->expectException(LogicException::class);
         $result->getPayload();
     }
 
-    public function test_it_returns_immutable_payload_on_success()
+    public function testItReturnsImmutablePayloadOnSuccess()
     {
-        $payload = new \stdClass;
+        $payload = new stdClass();
         $payload->email = 'anyone@foo.com';
         $result = TokenVerificationResult::createSuccess($payload);
         $this->assertEquals($payload, $result->getPayload());
@@ -57,10 +57,9 @@ class TokenVerificationResultTest extends TestCase
         );
     }
 
-    public function test_it_returns_failure_on_failure()
+    public function testItReturnsFailureOnFailure()
     {
-        $e = new \Exception('Literally anything');
+        $e = new Exception('Literally anything');
         $this->assertSame($e, TokenVerificationResult::createFailure($e)->getFailure());
     }
-
 }
