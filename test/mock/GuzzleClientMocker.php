@@ -17,7 +17,7 @@ use function array_values;
 final class GuzzleClientMocker
 {
     /**
-     * @var array<int, array{
+     * @var array<array{
      *     request: RequestInterface,
      *     response: ResponseInterface|null,
      *     error: mixed,
