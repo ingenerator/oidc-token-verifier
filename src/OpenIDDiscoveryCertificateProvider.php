@@ -132,7 +132,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     }
 
     /**
-     * @return array<string, array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}>
+     * @return array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}
      */
     private function fetchCertificates(string $issuer): array
     {
