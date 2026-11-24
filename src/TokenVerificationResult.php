@@ -6,29 +6,13 @@ use Exception;
 use LogicException;
 use stdClass;
 
-class TokenVerificationResult
+final class TokenVerificationResult
 {
-    /**
-     * @var stdClass
-     */
-    protected $payload;
-
-    /**
-     * @var Exception
-     */
-    protected $failure;
-
-    /**
-     * @var bool
-     */
-    protected $is_verified;
-
-    protected function __construct(bool $is_verified, ?stdClass $payload, ?Exception $failure)
-    {
-        // Just to prevent anything creating this other than with the factory methods
-        $this->is_verified = $is_verified;
-        $this->payload = $payload;
-        $this->failure = $failure;
+    private function __construct(
+        private readonly bool $is_verified,
+        private readonly ?stdClass $payload,
+        private readonly ?Exception $failure,
+    ) {
     }
 
     /**
@@ -36,7 +20,7 @@ class TokenVerificationResult
      */
     public static function createSuccess(stdClass $payload): static
     {
-        return new static(true, $payload, null);
+        return new self(true, $payload, null);
     }
 
     /**
@@ -44,7 +28,7 @@ class TokenVerificationResult
      */
     public static function createFailure(Exception $e): static
     {
-        return new static(false, null, $e);
+        return new self(false, null, $e);
     }
 
     /**
@@ -82,7 +66,7 @@ class TokenVerificationResult
      */
     public function getPayload(): stdClass
     {
-        if ($this->isVerified()) {
+        if ($this->is_verified) {
             return clone $this->payload;
         }
         throw new LogicException('Cannot access payload on failed token verification');
@@ -93,7 +77,7 @@ class TokenVerificationResult
      */
     public function getFailure(): Exception
     {
-        if ($this->isVerified()) {
+        if ($this->is_verified) {
             throw new LogicException('Cannot access failure on successful token verification');
         }
 

@@ -10,16 +10,16 @@ use Psr\Cache\CacheItemPoolInterface;
 
 use function current;
 
-class MockCacheItemPool implements CacheItemPoolInterface
+final class MockCacheItemPool implements CacheItemPoolInterface
 {
     /**
      * @var MockCacheItem[]
      */
-    protected $items = [];
+    private array $items = [];
 
     public static function empty(): MockCacheItemPool
     {
-        return new static();
+        return new self();
     }
 
     public function getItem(string $key): CacheItemInterface

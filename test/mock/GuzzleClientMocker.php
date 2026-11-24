@@ -12,32 +12,25 @@ use PHPUnit\Framework\Assert;
 
 use function array_map;
 
-class GuzzleClientMocker
+final class GuzzleClientMocker
 {
-    protected $mock;
+    private array $history = [];
 
-    /**
-     * @var array
-     */
-    protected $history = [];
-
-    /**
-     * @var Client
-     */
-    protected $client;
+    private readonly Client $client;
 
     public static function withResponses(Response ...$responses): static
     {
-        return new static($responses);
+        return new self($responses);
     }
 
     public static function withNoResponses(): static
     {
-        return new static([]);
+        return new self([]);
     }
 
-    protected function __construct(array $mock_responses)
-    {
+    private function __construct(
+        array $mock_responses,
+    ) {
         $mock = new MockHandler($mock_responses);
         $handler = HandlerStack::create($mock);
         $handler->push(Middleware::history($this->history));

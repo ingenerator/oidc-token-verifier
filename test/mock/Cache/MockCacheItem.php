@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace test\mock\Ingenerator\OIDCTokenVerifier\Cache;
 
 use BadMethodCallException;
@@ -9,40 +11,25 @@ use DateTimeInterface;
 use PHPUnit\Framework\Assert;
 use Psr\Cache\CacheItemInterface;
 
-class MockCacheItem implements CacheItemInterface
+final class MockCacheItem implements CacheItemInterface
 {
-    /**
-     * @var DateTimeImmutable|null
-     */
-    protected $expires_at;
-
-    /**
-     * @var string
-     */
-    protected $key;
-
-    /**
-     * @var bool
-     */
-    protected $is_hit;
+    private ?DateTimeImmutable $expires_at = null;
 
     public static function createHit(string $key, $value): MockCacheItem
     {
-        return new static($key, $value, true);
+        return new self($key, $value, true);
     }
 
     public static function createMiss(string $key): MockCacheItem
     {
-        return new static($key, null, false);
+        return new self($key, null, false);
     }
 
-    protected function __construct(
-        string $key,
-        protected $value,
-        bool $is_hit,
+    private function __construct(
+        private readonly string $key,
+        private $value,
+        private bool $is_hit,
     ) {
-        $this->key = $key;
-        $this->is_hit = $is_hit;
     }
 
     public function getKey(): string

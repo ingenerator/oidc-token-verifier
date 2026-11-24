@@ -11,29 +11,32 @@ use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Assert;
 
-class MockTokenVerifier implements TokenVerifier
+final class MockTokenVerifier implements TokenVerifier
 {
-    protected $calls = [];
+    /**
+     * @var list<array{string, array<mixed>}>
+     */
+    private array $calls = [];
 
     public static function willFailWith(Exception $e): static
     {
-        return new static(TokenVerificationResult::createFailure($e));
+        return new self(TokenVerificationResult::createFailure($e));
     }
 
     public static function willSucceedWith(array $token_props): static
     {
         $obj = (object) $token_props;
 
-        return new static(TokenVerificationResult::createSuccess($obj));
+        return new self(TokenVerificationResult::createSuccess($obj));
     }
 
     public static function notCalled(): static
     {
-        return new static(null);
+        return new self(null);
     }
 
-    protected function __construct(
-        protected ?TokenVerificationResult $result,
+    private function __construct(
+        private readonly ?TokenVerificationResult $result,
     ) {
     }
 

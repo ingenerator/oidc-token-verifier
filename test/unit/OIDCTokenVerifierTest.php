@@ -12,7 +12,6 @@ use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OIDCTokenVerifier;
 use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
-use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
@@ -241,12 +240,6 @@ final class OIDCTokenVerifierTest extends TestCase
             'RS256',
             self::$keys[$use_kid]['kid']
         );
-    }
-
-    protected function assertFailsVerification(
-        OIDCTokenVerifier $subject,
-        string $token,
-    ): TokenVerificationResult {
     }
 
     protected function givenTokenThatWillPassBasicVerification(array $payload): string
