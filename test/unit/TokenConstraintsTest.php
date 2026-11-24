@@ -138,6 +138,9 @@ final class TokenConstraintsTest extends TestCase
         $this->assertSame($constraints, $subject->toArray());
     }
 
+    /**
+     * @param ($expect_valid is true ? null : string) $expect_msg
+     */
     private function assertConstraintValidation(
         bool $expect_valid,
         ?string $expect_msg,

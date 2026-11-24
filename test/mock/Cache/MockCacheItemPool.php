@@ -101,6 +101,7 @@ final class MockCacheItemPool implements CacheItemPoolInterface
     {
         Assert::assertCount(1, $this->items);
         $key = array_key_first($this->items);
+        assert($key !== null, 'Key cannot be null if array has one item');
 
         return $this->items[$key];
     }
