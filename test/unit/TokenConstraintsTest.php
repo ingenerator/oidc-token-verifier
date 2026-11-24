@@ -127,15 +127,16 @@ final class TokenConstraintsTest extends TestCase
         TokenConstraints $subject,
         stdClass $token,
     ): void {
-        if (!$expect_valid) {
-            $this->expectException(TokenConstraintFailureException::class);
-            $this->expectExceptionMessage($expect_msg);
+        try {
+            $subject->mustMatch($token);
+        } catch (TokenConstraintFailureException $e) {
         }
 
-        $subject->mustMatch($token);
-
         if ($expect_valid) {
-            $this->assertTrue(true, 'Token was valid');
+            $this->assertFalse(isset($e), 'Token should be valid - should not get exception');
+        } else {
+            $this->assertTrue(isset($e), 'Token should be invalid - should get exception');
+            $this->assertStringContainsString($expect_msg, $e->getMessage());
         }
     }
 }
