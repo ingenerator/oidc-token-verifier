@@ -23,6 +23,9 @@ final class MockTokenVerifier implements TokenVerifier
         return new self(TokenVerificationResult::createFailure($e));
     }
 
+    /**
+     * @param array<string, mixed> $token_props
+     */
     public static function willSucceedWith(array $token_props): static
     {
         $obj = (object) $token_props;
@@ -50,6 +53,9 @@ final class MockTokenVerifier implements TokenVerifier
         throw new BadMethodCallException('Unexpected call to '.__METHOD__);
     }
 
+    /**
+     * @param array<string, string|list<string>> $extra_constraints
+     */
     public function assertVerifiedOnce(string $token, array $extra_constraints = []): void
     {
         Assert::assertSame([[$token, $extra_constraints]], $this->calls);
