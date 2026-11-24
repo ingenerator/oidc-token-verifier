@@ -15,7 +15,7 @@ final class MockCacheItem implements CacheItemInterface
 {
     private ?DateTimeImmutable $expires_at = null;
 
-    public static function createHit(string $key, $value): MockCacheItem
+    public static function createHit(string $key, mixed $value): MockCacheItem
     {
         return new self($key, $value, true);
     }
@@ -27,7 +27,7 @@ final class MockCacheItem implements CacheItemInterface
 
     private function __construct(
         private readonly string $key,
-        private $value,
+        private mixed $value,
         private bool $is_hit,
     ) {
     }

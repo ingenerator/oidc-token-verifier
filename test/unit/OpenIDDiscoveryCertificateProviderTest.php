@@ -365,6 +365,9 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected static function makeDiscoveryDocument(string $jwks_uri, string $issuer): array
     {
         $discovery = [
@@ -469,6 +472,9 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->newSubject()->getCertificates($issuer);
     }
 
+    /**
+     * @param list<array<string, string>> $keys
+     */
     protected static function makeJWKSResponseWithKeys(
         array $keys,
         ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
@@ -489,7 +495,7 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     /**
      * @param array<string, string> $expected_certs
-     * @param Key[] $actual_certs
+     * @param array<string, Key> $actual_certs
      */
     private function assertSameOpenSSLPublicKeys(array $expected_certs, array $actual_certs): void
     {

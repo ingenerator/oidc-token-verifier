@@ -6,14 +6,18 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use PHPUnit\Framework\Assert;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 use function array_map;
 
 final class GuzzleClientMocker
 {
+    /**
+     * @var array<int, array{request: RequestInterface, response: ResponseInterface|null, error: mixed, options: array<mixed>}>
+     */
     private array $history = [];
 
     private readonly Client $client;
@@ -28,6 +32,9 @@ final class GuzzleClientMocker
         return new self([]);
     }
 
+    /**
+     * @param list<Response> $mock_responses
+     */
     private function __construct(
         array $mock_responses,
     ) {
@@ -48,11 +55,14 @@ final class GuzzleClientMocker
         Assert::assertCount(0, $this->history, 'Expected no requests to be sent');
     }
 
+    /**
+     * @param list<string> $expect
+     */
     public function assertExactRequestSequence(array $expect): void
     {
-        $requests = array_map(fn (array $hist) => $hist['request'], $this->history);
+        $requests = array_map(fn (array $hist): RequestInterface => $hist['request'], $this->history);
         $actual = array_map(
-            fn (Request $req): string => $req->getMethod().' '.$req->getUri(),
+            fn (RequestInterface $req): string => $req->getMethod().' '.$req->getUri(),
             $requests
         );
         Assert::assertSame($expect, $actual);

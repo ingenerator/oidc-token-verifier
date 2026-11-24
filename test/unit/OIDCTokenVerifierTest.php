@@ -37,6 +37,9 @@ final class OIDCTokenVerifierTest extends TestCase
         ],
     ];
 
+    /**
+     * @var array<string, array<string, string>>
+     */
     private array $certs = [];
 
     private string $expected_issuer = 'https://secure.provider';
@@ -103,9 +106,9 @@ final class OIDCTokenVerifierTest extends TestCase
     #[TestWith([-200, -100, '/Expired token/'])]
     #[TestWith([100, 300, '/^Cannot handle token (?:with iat )*prior to/'])]
     public function testItFailsVerificationIfExpiredOrNotYetValid(
-        $iat_offset,
-        $exp_offset,
-        $expect_reason,
+        int $iat_offset,
+        int $exp_offset,
+        string $expect_reason,
     ): void {
         $token = $this->createJwtWithKey(
             [
@@ -146,7 +149,7 @@ final class OIDCTokenVerifierTest extends TestCase
 
     #[TestWith(['e762'])]
     #[TestWith(['2f42'])]
-    public function testItPassesVerificationIfIssuerMatchesExpectations($use_kid): void
+    public function testItPassesVerificationIfIssuerMatchesExpectations(string $use_kid): void
     {
         $payload = [
             'aud' => 'https://foo.bar.com/anything',
@@ -210,6 +213,9 @@ final class OIDCTokenVerifierTest extends TestCase
         );
     }
 
+    /**
+     * @param list<string> $cert_ids
+     */
     protected function givenCertProviderWithCerts(string $issuer, array $cert_ids): void
     {
         $this->certs = [];
@@ -218,6 +224,9 @@ final class OIDCTokenVerifierTest extends TestCase
         }
     }
 
+    /**
+     * @param array<string, scalar> $payload
+     */
     protected function createJwtWithKey(array $payload, string $use_kid): string
     {
         $payload = array_merge(
@@ -242,6 +251,9 @@ final class OIDCTokenVerifierTest extends TestCase
         );
     }
 
+    /**
+     * @param array<string, scalar> $payload
+     */
     protected function givenTokenThatWillPassBasicVerification(array $payload): string
     {
         $token = $this->createJwtWithKey(

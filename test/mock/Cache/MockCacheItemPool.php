@@ -34,6 +34,11 @@ final class MockCacheItemPool implements CacheItemPoolInterface
         return MockCacheItem::createMiss($key);
     }
 
+    /**
+     * @param list<string> $keys
+     *
+     * @return iterable<string, CacheItemInterface>
+     */
     public function getItems(array $keys = []): iterable
     {
         throw new BadMethodCallException(__METHOD__.' not mocked');
@@ -86,6 +91,9 @@ final class MockCacheItemPool implements CacheItemPoolInterface
         throw new BadMethodCallException(__METHOD__.' not mocked');
     }
 
+    /**
+     * @return list<string>
+     */
     public function listSavedKeys(): array
     {
         return array_keys($this->items);

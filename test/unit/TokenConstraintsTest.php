@@ -31,8 +31,11 @@ final class TokenConstraintsTest extends TestCase
 
     #[TestWith(['https://someone-elses-site.com/handler', false, '[audience_exact]'])]
     #[TestWith(['https://my-site.com/handler', true, null])]
-    public function testItCanValidateExactAudienceMatch($constraint, $expect_valid, $expect_msg): void
-    {
+    public function testItCanValidateExactAudienceMatch(
+        string $constraint,
+        bool $expect_valid,
+        ?string $expect_msg,
+    ): void {
         $subject = new TokenConstraints(['audience_exact' => $constraint]);
         $token = new stdClass();
         $token->aud = 'https://my-site.com/handler';
@@ -66,21 +69,29 @@ final class TokenConstraintsTest extends TestCase
     #[TestWith(['https://my.site/', 'http://my.site/', true, null])]
     #[TestWith(['https://my.site/', 'http://my.site/h', false, '[audience_path_and_query]'])]
     #[TestWith(['https://any.thing', 'wierd corrupt url', false, '[audience_path_and_query]'])]
-    public function testItCanValidateAudiencePathAndQuery($constraint, $audience, $expect_valid, $expect_msg): void
-    {
+    public function testItCanValidateAudiencePathAndQuery(
+        string $constraint,
+        string $audience,
+        bool $expect_valid,
+        ?string $expect_msg,
+    ): void {
         $subject = new TokenConstraints(['audience_path_and_query' => $constraint]);
         $token = new stdClass();
         $token->aud = $audience;
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
     }
 
+    /** @param string|list<string> $constraint */
     #[TestWith(['my@service.acct', true, null])]
     #[TestWith(['differ@ent.service', false, '[email_exact]'])]
     #[TestWith([['my@service.acct'], true, null])]
     #[TestWith([['my@service.acct', 'differ@ent.service'], true, null])]
     #[TestWith([['an@other.svc', 'differ@ent.service'], false, '[email_exact]'])]
-    public function testItCanValidateExactEmailMatchAgainstList($constraint, $expect_valid, $expect_msg): void
-    {
+    public function testItCanValidateExactEmailMatchAgainstList(
+        string|array $constraint,
+        bool $expect_valid,
+        ?string $expect_msg,
+    ): void {
         $subject = new TokenConstraints(['email_exact' => $constraint]);
         $token = new stdClass();
         $token->email = 'my@service.acct';
@@ -90,22 +101,28 @@ final class TokenConstraintsTest extends TestCase
     #[TestWith(['/^my@service\\.acct$/', true, null])]
     #[TestWith(['/@service\\.acct$/', true, null])]
     #[TestWith(['/@prod-services.accts$/', false, '[email_match]'])]
-    public function testItCanValidateEmailBeginsWith($constraint, $expect_valid, $expect_msg): void
-    {
+    public function testItCanValidateEmailBeginsWith(
+        string $constraint,
+        bool $expect_valid,
+        ?string $expect_msg,
+    ): void {
         $subject = new TokenConstraints(['email_match' => $constraint]);
         $token = new stdClass();
         $token->email = 'my@service.acct';
         $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
     }
 
+    /**
+     * @param array<string, string|list<string>> $contraints
+     */
     #[TestWith([['email_exact' => 'foo@acct.test', 'audience_exact' => 'http://foo.bar/com'], true, null])]
     #[TestWith([['email_exact' => 'bar@acct.test', 'audience_exact' => 'http://foo.bar/com'], false, '[email_exact]'])]
     #[TestWith([['email_exact' => 'foo@acct.test', 'audience_exact' => 'http://bar.com/'], false, '[audience_exact]'])]
     #[TestWith([['email_exact' => 'bar@acct.test', 'audience_exact' => 'http://bar.com/'], false, '[audience_exact, email_exact]'])]
     public function testItValidatesMultipleConstraintsAndRequiresAllToPass(
-        $contraints,
-        $expect_valid,
-        $expect_msg,
+        array $contraints,
+        bool $expect_valid,
+        ?string $expect_msg,
     ): void {
         $subject = new TokenConstraints($contraints);
         $token = new stdClass();
