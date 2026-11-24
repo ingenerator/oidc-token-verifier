@@ -21,6 +21,7 @@
     },
     "require-dev": {
         "fig/log-test": "^1.1",
+        "php-cs-fixer/shim": "3.95.32",
         "phpunit/phpunit": "^13.4"
     },
     "support": {
@@ -41,5 +42,9 @@
     "config": {
         "preferred-install": "dist",
         "sort-packages": true
+    },
+    "scripts": {
+        "cs": "php-cs-fixer fix --dry-run --verbose --diff",
+        "cs-fix": "php-cs-fixer fix"
     }
 }
