@@ -1,47 +1,55 @@
 <?php
 
-
 namespace test\mock\Ingenerator\OIDCTokenVerifier;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
-use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
-use InvalidArgumentException;
 use PHPUnit\Framework\Assert;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
-class GuzzleClientMocker
+use function array_map;
+use function array_values;
+
+final class GuzzleClientMocker
 {
-
-    protected $mock;
-
     /**
-     * @var array
+     * @var array<array{
+     *     request: RequestInterface,
+     *     response: ResponseInterface|null,
+     *     error: mixed,
+     *     options: array<array-key, mixed>
+     * }>
      */
-    protected $history = [];
+    private array $history = [];
 
-    /**
-     * @var Client
-     */
-    protected $client;
+    private readonly Client $client;
 
-    public static function withResponses(Response ...$responses)
+    public static function withResponses(Response ...$responses): static
     {
-        return new static($responses);
+        return new self(array_values($responses));
     }
 
-    public static function withNoResponses()
+    public static function withNoResponses(): static
     {
-        return new static([]);
+        return new self([]);
     }
 
-    protected function __construct(array $mock_responses)
-    {
-        $mock    = new MockHandler($mock_responses);
+    /**
+     * @param list<Response> $mock_responses
+     */
+    private function __construct(
+        array $mock_responses,
+    ) {
+        $mock = new MockHandler($mock_responses);
         $handler = HandlerStack::create($mock);
-        $handler->push(Middleware::history($this->history));
+        $history = [];
+        $handler->push(Middleware::history($history));
+        Assert::assertIsArray($history);
+        $this->history = &$history;
 
         $this->client = new Client(['handler' => $handler]);
     }
@@ -51,19 +59,21 @@ class GuzzleClientMocker
         return $this->client;
     }
 
-    public function assertNoRequestsSent()
+    public function assertNoRequestsSent(): void
     {
         Assert::assertCount(0, $this->history, 'Expected no requests to be sent');
     }
 
-    public function assertExactRequestSequence(array $expect)
+    /**
+     * @param list<string> $expect
+     */
+    public function assertExactRequestSequence(array $expect): void
     {
-        $requests = \array_map(function ($hist) { return $hist['request']; }, $this->history);
-        $actual   = \array_map(
-            function (Request $req) { return $req->getMethod().' '.$req->getUri(); },
+        $requests = array_map(fn (array $hist): RequestInterface => $hist['request'], $this->history);
+        $actual = array_map(
+            fn (RequestInterface $req): string => $req->getMethod().' '.$req->getUri(),
             $requests
         );
         Assert::assertSame($expect, $actual);
     }
-
 }

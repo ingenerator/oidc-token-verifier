@@ -1,15 +1,19 @@
 <?php
 
+declare(strict_types=1);
 
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
-
 use DateInterval;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Firebase\JWT\Key;
 use GuzzleHttp\Psr7\Response;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
 use Ingenerator\OIDCTokenVerifier\OpenIDDiscoveryCertificateProvider;
+use InvalidArgumentException;
+use Iterator;
+use OpenSSLAsymmetricKey;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\TestCase;
@@ -18,134 +22,147 @@ use Psr\Log\NullLogger;
 use Psr\Log\Test\TestLogger;
 use test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool;
 use test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker;
+
 use function array_map;
+use function json_decode;
 use function json_encode;
 use function openssl_pkey_get_details;
+use function openssl_pkey_get_public;
 
-class OpenIDDiscoveryCertificateProviderTest extends TestCase
+use const JSON_THROW_ON_ERROR;
+
+/**
+ * @phpstan-import-type TProviderOptions from OpenIDDiscoveryCertificateProvider
+ */
+final class OpenIDDiscoveryCertificateProviderTest extends TestCase
 {
+    public const string CERT_PEM_7F725 = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqOpAAmY20iOCNu8c913Y\noMv01U817A/SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhX\naWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8\nPzsj+YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs/UVbqu\nrGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw+dCx4mTr+UGJe50LFUfG/bkZ18TT\nbGxHiJmqYUrnmM9LVyihM3rd/aQa5I/zBtwbMo6/ntDhiF4klYr/xgXhvGlxog0d\nEwIDAQAB\n-----END PUBLIC KEY-----\n";
+    public const string CERT_PEM_C952C = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmvj+0waJ2owQlFWrlC06\ngoLs9PcNehIzCF0QrkdsYZJXOsipcHCFlXBsgQIdTdLvlCzNI07jSYA+zggycYi9\n6lfDX+FYv/CqC8dRLf9TBOPvUgCyFMCFNUTC69hsrEYMR/J79Wj0MIOffiVr6eX+\nAaCG3KhBMZMh15KCdn3uVrl9coQivy7bk2Uw+aUJ/b26C0gWYj1DnpO4UEEKBk1X\n+lpeUMh0B/XorqWeq0NYK2pN6CoEIh0UrzYKlGfdnMU1pJJCsNxMiha+Vw3qqxez\n6oytOV/AswlWvQc7TkSX6cHfqepNskQb7pGxpgQpy9sA34oIxB/S+O7VS7/h0Qh4\nvQIDAQAB\n-----END PUBLIC KEY-----\n";
 
-    const CERT_PEM_7F725 = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqOpAAmY20iOCNu8c913Y\noMv01U817A/SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhX\naWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8\nPzsj+YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs/UVbqu\nrGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw+dCx4mTr+UGJe50LFUfG/bkZ18TT\nbGxHiJmqYUrnmM9LVyihM3rd/aQa5I/zBtwbMo6/ntDhiF4klYr/xgXhvGlxog0d\nEwIDAQAB\n-----END PUBLIC KEY-----\n";
-    const CERT_PEM_C952C = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmvj+0waJ2owQlFWrlC06\ngoLs9PcNehIzCF0QrkdsYZJXOsipcHCFlXBsgQIdTdLvlCzNI07jSYA+zggycYi9\n6lfDX+FYv/CqC8dRLf9TBOPvUgCyFMCFNUTC69hsrEYMR/J79Wj0MIOffiVr6eX+\nAaCG3KhBMZMh15KCdn3uVrl9coQivy7bk2Uw+aUJ/b26C0gWYj1DnpO4UEEKBk1X\n+lpeUMh0B/XorqWeq0NYK2pN6CoEIh0UrzYKlGfdnMU1pJJCsNxMiha+Vw3qqxez\n6oytOV/AswlWvQc7TkSX6cHfqepNskQb7pGxpgQpy9sA34oIxB/S+O7VS7/h0Qh4\nvQIDAQAB\n-----END PUBLIC KEY-----\n";
+    private MockCacheItemPool $cache;
 
-    /**
-     * @var \test\mock\Ingenerator\OIDCTokenVerifier\Cache\MockCacheItemPool
-     */
-    protected $cache;
+    private GuzzleClientMocker $guzzle_mocker;
 
     /**
-     * @var \test\mock\Ingenerator\OIDCTokenVerifier\GuzzleClientMocker
+     * @var TProviderOptions
      */
-    protected $guzzle_mocker;
+    private array $options = [];
 
-    protected $options = [];
+    private LoggerInterface $log;
 
-    protected $log;
-
-    public function test_it_is_initialisable()
+    public function testItIsInitialisable(): void
     {
         $this->assertInstanceOf(OpenIDDiscoveryCertificateProvider::class, $this->newSubject());
     }
 
-    public function test_it_throws_if_issuer_not_a_url()
+    public function testItThrowsIfIssuerNotAUrl(): void
     {
         $subject = $this->newSubject();
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $subject->getCertificates('i.am.never.valid');
     }
 
-    #[TestWith(["http://foo.bar", [], TRUE])]
-    #[TestWith(["http://foo.bar", ["allow_insecure" => TRUE], FALSE])]
-    #[TestWith(["http://foo.bar", ["allow_insecure" => FALSE], TRUE])]
-    #[TestWith(["https://foo.bar", ["allow_insecure" => TRUE], FALSE])]
-    #[TestWith(["https://foo.bar", ["allow_insecure" => FALSE], FALSE])]
-    public function test_it_throws_if_issuer_not_https_unless_allow_insecure($iss, $options, $expect_exception)
-    {
+    /**
+     * @param TProviderOptions $options
+     */
+    #[TestWith(['http://foo.bar', [], true])]
+    #[TestWith(['http://foo.bar', ['allow_insecure' => true], false])]
+    #[TestWith(['http://foo.bar', ['allow_insecure' => false], true])]
+    #[TestWith(['https://foo.bar', ['allow_insecure' => true], false])]
+    #[TestWith(['https://foo.bar', ['allow_insecure' => false], false])]
+    public function testItThrowsIfIssuerNotHttpsUnlessAllowInsecure(
+        string $iss,
+        array $options,
+        bool $expect_exception,
+    ): void {
         $this->options = $options;
-        if ( ! $expect_exception) {
+        if (!$expect_exception) {
             $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-                static::makeDiscoveryDocResponse(),
-                static::makeDefaultJWKSResponse()
+                self::makeDiscoveryDocResponse(),
+                self::makeDefaultJWKSResponse()
             );
         }
 
         $subject = $this->newSubject();
 
         if ($expect_exception) {
-            $this->expectException(\InvalidArgumentException::class);
+            $this->expectException(InvalidArgumentException::class);
             $this->expectExceptionMessage('Cannot auto-discover certificates');
         }
 
         $subject->getCertificates($iss);
     }
 
-    public static function provider_jwks_fetch_errors(): array
+    public static function provider_jwks_fetch_errors(): Iterator
     {
         $iss = 'https://borked-cert-provider.com';
-
-        return [
-            [
-                'Discovery URL is 500',
-                new Response(500, [], 'Argh')
-            ],
-            [
-                'Discovery doc not JSON',
-                new Response(200, [], 'I am a teapot')
-            ],
-            [
-                'Discovery doc has no jwks_uri',
-                new Response(200, [], json_encode(['anything']))
-            ],
-            [
-                'jwks doc is 404',
-                static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
-                new Response(404, [], 'I no here')
-            ],
-            [
-                'jwks doc is not schema-valid',
-                static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
-                new Response(200, [], json_encode(['this' => 'is junk']))
-            ],
-            [
-                'jwks doc has broken key data',
-                static::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
-                static::makeJWKSResponseWithKeys(
+        yield 'Discovery URL is 500' => [
+            new Response(500, [], 'Argh'),
+        ];
+        yield 'Discovery doc not JSON' => [
+            new Response(200, [], 'I am a teapot'),
+        ];
+        yield 'Discovery doc has no jwks_uri' => [
+            new Response(200, [], json_encode(['anything'], JSON_THROW_ON_ERROR)),
+        ];
+        yield 'Discovery doc is not an object' => [
+            new Response(200, [], json_encode(null, JSON_THROW_ON_ERROR)),
+        ];
+        yield 'Discovery doc has a non-string jwks_uri' => [
+            new Response(200, [], json_encode(['jwks_uri' => 42], JSON_THROW_ON_ERROR)),
+        ];
+        yield 'jwks doc is 404' => [
+            self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
+            new Response(404, [], 'I no here'),
+        ];
+        yield 'jwks doc is not an object' => [
+            self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
+            new Response(200, [], json_encode(null, JSON_THROW_ON_ERROR)),
+        ];
+        yield 'jwks keys are not an array' => [
+            self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
+            new Response(200, [], json_encode(['keys' => 'invalid'], JSON_THROW_ON_ERROR)),
+        ];
+        yield 'jwks doc is not schema-valid' => [
+            self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
+            new Response(200, [], json_encode(['this' => 'is junk'], JSON_THROW_ON_ERROR)),
+        ];
+        yield 'jwks doc has broken key data' => [
+            self::makeDiscoveryDocResponse('https://anywhere/jwks.json', $iss),
+            self::makeJWKSResponseWithKeys(
+                [
                     [
-                        [
-                            'e'   => 'AQAB',
-                            'n'   => 'anything',
-                            'kid' => 'd12e77e0024a861a60fa4df2efa1b9348e0c1540',
-                            'use' => 'sig',
-                            'alg' => 'RSA256',
-                            // 'kty' => 'RSA',
-                        ],
-                    ]
-                )
-            ],
-            [
-                'jwks doc has invalid expires header',
-                static::makeDiscoveryDocResponse(),
-                static::makeDefaultJWKSResponse()->withHeader('Expires', 'No'),
-            ],
+                        'e' => 'AQAB',
+                        'n' => 'anything',
+                        'kid' => 'd12e77e0024a861a60fa4df2efa1b9348e0c1540',
+                        'use' => 'sig',
+                        'alg' => 'RSA256',
+                        // 'kty' => 'RSA',
+                    ],
+                ]
+            ),
+        ];
+        yield 'jwks doc has invalid expires header' => [
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse()->withHeader('Expires', 'No'),
         ];
     }
 
     #[DataProvider('provider_jwks_fetch_errors')]
-    public function test_it_throws_on_error_fetching_jwks_if_no_cached_values(
-        string $case,
-        Response...$responses
-    ) {
+    public function testItThrowsOnErrorFetchingJwksIfNoCachedValues(
+        Response ...$responses,
+    ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(...$responses);
-        $subj                = $this->newSubject();
+        $subj = $this->newSubject();
         $this->expectException(CertificateDiscoveryFailedException::class);
         $subj->getCertificates('https://anyone.com');
     }
 
-    public function test_if_cache_empty_it_fetches_discovery_document_to_locate_jwks_uri()
+    public function testIfCacheEmptyItFetchesDiscoveryDocumentToLocateJwksUri(): void
     {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse('https://foo.bar.com/oauth2/v3/certs'),
-            static::makeDefaultJWKSResponse()
+            self::makeDiscoveryDocResponse('https://foo.bar.com/oauth2/v3/certs'),
+            self::makeDefaultJWKSResponse()
         );
 
         $this->newSubject()->getCertificates('https://accounts.bar.com');
@@ -158,11 +175,11 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function test_it_returns_keys_parsed_from_jwks_document_if_cache_empty()
+    public function testItReturnsKeysParsedFromJwksDocumentIfCacheEmpty(): void
     {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(),
-            static::makeDefaultJWKSResponse()
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse()
         );
 
         $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
@@ -176,18 +193,45 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    #[TestWith(["https://accounts.anyone.com", [], "openid_jwks|e6f867764d04c07b7fda10fd4ae7e57be5c289f5"])]
-    #[TestWith([
-        "https://accounts.anyone.com",
-        ["cache_key_prefix" => "custom"],
-        "custom|e6f867764d04c07b7fda10fd4ae7e57be5c289f5",
-    ])]
-    #[TestWith(["https://my.account.srv", [], "openid_jwks|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1"])]
-    public function test_it_sets_cache_keys_based_on_prefix_and_sha_of_issuer($iss, $opts, $expect)
+    public function testNumericKeyIdsArePreservedInCachedCertificates(): void
     {
+        $jwks = json_decode((string) self::makeDefaultJWKSResponse()->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        $this->assertIsArray($jwks);
+        $this->assertIsArray($jwks['keys'] ?? null);
+        $this->assertIsArray($jwks['keys'][0] ?? null);
+        $jwks['keys'][0]['kid'] = '123';
+
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(),
-            static::makeDefaultJWKSResponse()
+            self::makeDiscoveryDocResponse(),
+            new Response(200, [], json_encode($jwks, JSON_THROW_ON_ERROR))
+        );
+        $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
+        $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
+
+        $this->assertArrayHasKey(123, $certs);
+        $this->guzzle_mocker->assertNoRequestsSent();
+    }
+
+    /**
+     * @param TProviderOptions $opts
+     */
+    #[TestWith(['https://accounts.anyone.com', [], 'openid_jwks|v2|e6f867764d04c07b7fda10fd4ae7e57be5c289f5'])]
+    #[TestWith([
+        'https://accounts.anyone.com',
+        ['cache_key_prefix' => 'custom'],
+        'custom|v2|e6f867764d04c07b7fda10fd4ae7e57be5c289f5',
+    ])]
+    #[TestWith(['https://my.account.srv', [], 'openid_jwks|v2|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1'])]
+    public function testItSetsVersionedCacheKeysBasedOnPrefixAndShaOfIssuer(
+        string $iss,
+        array $opts,
+        string $expect,
+    ): void {
+        $this->guzzle_mocker = GuzzleClientMocker::withResponses(
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse()
         );
 
         $this->options = array_merge($this->options, $opts);
@@ -196,15 +240,18 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertSame([$expect], $this->cache->listSavedKeys());
     }
 
-    #[TestWith([[], "tomorrow 02:00:00"])]
-    #[TestWith([["cache_refresh_grace_period" => "PT4H"], "tomorrow 04:00:00"])]
-    public function test_it_caches_keys_with_hard_ttl_grace_period_after_expires_time(
-        $opts,
-        $expect
-    ) {
+    /**
+     * @param TProviderOptions $opts
+     */
+    #[TestWith([[], 'tomorrow 02:00:00'])]
+    #[TestWith([['cache_refresh_grace_period' => 'PT4H'], 'tomorrow 04:00:00'])]
+    public function testItCachesKeysWithHardTtlGracePeriodAfterExpiresTime(
+        array $opts,
+        string $expect,
+    ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(),
-            static::makeDefaultJWKSResponse(new DateTimeImmutable('tomorrow 00:00:00'))
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse(new DateTimeImmutable('tomorrow 00:00:00'))
         );
 
         $this->options = \array_merge($this->options, $opts);
@@ -215,16 +262,16 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertEquals(new DateTimeImmutable($expect), $cache_item->getExpiresAt());
     }
 
-    public function test_it_caches_for_grace_period_if_no_expires_header()
+    public function testItCachesForGracePeriodIfNoExpiresHeader(): void
     {
         $one_hour_thirty = new DateInterval('PT1H30M');
-        $time_start = new DateTimeImmutable;
+        $time_start = new DateTimeImmutable();
         $this->options['cache_refresh_grace_period'] = 'PT1H';
         $this->options['cache_expires_if_no_header'] = 'PT30M';
 
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(),
-            static::makeDefaultJWKSResponse(NULL)
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse(null)
         );
 
         $this->newSubject()->getCertificates('https://accounts.anyone.com');
@@ -235,15 +282,15 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         // now.
         $cache_expires = $cache_item->getExpiresAt();
         $this->assertGreaterThan($time_start->add($one_hour_thirty), $cache_expires);
-        $this->assertLessThan((new DateTimeImmutable())->add($one_hour_thirty), $cache_expires);
+        $this->assertLessThan(new DateTimeImmutable()->add($one_hour_thirty), $cache_expires);
     }
 
-    public function test_if_cache_present_it_returns_cached_value_without_http_requests()
+    public function testIfCachePresentItReturnsCachedValueWithoutHttpRequests(): void
     {
         $this->givenPreviouslyRequestedAndCachedJWKs('https://accounts.anyone.com');
 
         $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
-        $certs               = $this->newSubject()->getCertificates('https://accounts.anyone.com');
+        $certs = $this->newSubject()->getCertificates('https://accounts.anyone.com');
         $this->assertSameOpenSSLPublicKeys(
             [
                 '4b83f18023a855587f942e75102251120887f725' => self::CERT_PEM_7F725,
@@ -254,7 +301,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->guzzle_mocker->assertNoRequestsSent();
     }
 
-    public function test_if_cache_soft_expired_it_fetches_and_caches_new_values()
+    public function testIfCacheSoftExpiredItFetchesAndCachesNewValues(): void
     {
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
@@ -262,28 +309,28 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
 
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(
+            self::makeDiscoveryDocResponse(
                 'https://foo.bar.com/oauth2/v3/certs',
                 'https://accounts.bar.com'
             ),
             $this->makeJWKSResponseWithKeys(
                 [
                     [
-                        'e'   => 'AQAB',
-                        'n'   => 'r-rlzRqEj4tjNOhEBW5XVafi-0S2CzHyEHM09sy6tN_c_wrrbGj6tTawzRdPpI4z6pRgND2Zb_mKV9RBQjLk1xWijCN4ifOZmKUAx0rnmuv2Fc5-3Re-bvnJQE79aO9mMVS4wi-RVYbUPtU6fajxKeOLIyzEChtwTLKR0uLotHF7JQkP_3HVBXwF0h5iElXU9ycSUTQMzcpBgT52tUlEJA-d5-KhXTFIg2iHnSkiT-SWwbDJW5s0iVO8gNkpFwixKqsKjuJUcx4ysBTGlwsSMBWlyuJpywIQozaqNb-u1ijh7vOo3tRo3iR1Mu1RDa4ssyXaZc4plQ67UiBNKzhv0w',
+                        'e' => 'AQAB',
+                        'n' => 'r-rlzRqEj4tjNOhEBW5XVafi-0S2CzHyEHM09sy6tN_c_wrrbGj6tTawzRdPpI4z6pRgND2Zb_mKV9RBQjLk1xWijCN4ifOZmKUAx0rnmuv2Fc5-3Re-bvnJQE79aO9mMVS4wi-RVYbUPtU6fajxKeOLIyzEChtwTLKR0uLotHF7JQkP_3HVBXwF0h5iElXU9ycSUTQMzcpBgT52tUlEJA-d5-KhXTFIg2iHnSkiT-SWwbDJW5s0iVO8gNkpFwixKqsKjuJUcx4ysBTGlwsSMBWlyuJpywIQozaqNb-u1ijh7vOo3tRo3iR1Mu1RDa4ssyXaZc4plQ67UiBNKzhv0w',
                         'kid' => 'd12e77e0024a861a60fa4df2efa1b9348e0c1540',
                         'use' => 'sig',
                         'alg' => 'RSA256',
                         'kty' => 'RSA',
                     ],
                     [
-                        'e'   => 'AQAB',
-                        'n'   => 'rh8zYWxsJHX265kzfaWsgCBHMcNvMn4PE6xgdAgyZyQFzuJ1NqIZ3a0fItMQRHM2QzlW0VCWv4X7CObfnRJvoHUHYQMRoUGGZytZjsRw4JjLd2mI4i7KY3VVeqOi65DGWqiZiSwUsh5404JxNu-7n20FBLXr3eaT56F3Mn5mLBB-o5f5_olciMXkmwTt2ef3vGhhh9E7socYOmvqQGZm6-Tl0epLvLurqkNrzd9TYyOcVrl4mmsRNmi7bvKXGpfXySNWOtDxFu07UVtwf1A_0o1wqGDmKMju7JkL598syeLgMWiwNW2rqBccjWI8FRJsVpsc3fVnuXL70bTu1A2IIw',
+                        'e' => 'AQAB',
+                        'n' => 'rh8zYWxsJHX265kzfaWsgCBHMcNvMn4PE6xgdAgyZyQFzuJ1NqIZ3a0fItMQRHM2QzlW0VCWv4X7CObfnRJvoHUHYQMRoUGGZytZjsRw4JjLd2mI4i7KY3VVeqOi65DGWqiZiSwUsh5404JxNu-7n20FBLXr3eaT56F3Mn5mLBB-o5f5_olciMXkmwTt2ef3vGhhh9E7socYOmvqQGZm6-Tl0epLvLurqkNrzd9TYyOcVrl4mmsRNmi7bvKXGpfXySNWOtDxFu07UVtwf1A_0o1wqGDmKMju7JkL598syeLgMWiwNW2rqBccjWI8FRJsVpsc3fVnuXL70bTu1A2IIw',
                         'kid' => '1c93fa48c428560264ef0d79fc6bbd098b91fe0a',
                         'use' => 'sig',
                         'alg' => 'RSA256',
                         'kty' => 'RSA',
-                    ]
+                    ],
                 ]
             )
         );
@@ -298,9 +345,9 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function test_if_cache_soft_expired_it_returns_previous_cached_values_on_refresh_error()
+    public function testIfCacheSoftExpiredItReturnsPreviousCachedValuesOnRefreshError(): void
     {
-        $this->log = new NullLogger;
+        $this->log = new NullLogger();
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
             new DateTimeImmutable('-5 minutes')
@@ -321,9 +368,9 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
-    public function test_it_logs_errors_refreshing_certificates_during_grace_period()
+    public function testItLogsErrorsRefreshingCertificatesDuringGracePeriod(): void
     {
-        $this->log = new TestLogger;
+        $this->log = new TestLogger();
         $this->givenPreviouslyRequestedAndCachedJWKs(
             'https://accounts.anyone.com',
             new DateTimeImmutable('-5 minutes')
@@ -335,15 +382,16 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
         $this->newSubject()->getCertificates('https://accounts.anyone.com');
 
+        $this->assertInstanceOf(TestLogger::class, $this->log);
         $this->assertTrue($this->log->hasWarningThatMatches('/500/'));
     }
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->cache         = MockCacheItemPool::empty();
+        $this->cache = MockCacheItemPool::empty();
         $this->guzzle_mocker = GuzzleClientMocker::withNoResponses();
-        $this->log           = $this->getMockBuilder(LoggerInterface::class)->getMock();
+        $this->log = $this->createMock(LoggerInterface::class);
         $this->log->expects($this->never())->method($this->anything());
     }
 
@@ -358,162 +406,161 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
     }
 
     /**
-     * @param string $jwks_uri
-     * @param string $issuer
-     *
-     * @return array
+     * @return array<string, mixed>
      */
     protected static function makeDiscoveryDocument(string $jwks_uri, string $issuer): array
     {
         $discovery = [
-            'issuer'                                => $issuer,
-            'authorization_endpoint'                => 'https://accounts.foo.com/o/oauth2/v2/auth',
-            'device_authorization_endpoint'         => 'https://oauth2.whatever.com/device/code',
-            'token_endpoint'                        => 'https://oauth2.whatever.com/token',
-            'userinfo_endpoint'                     => 'https://openidconnect.whatever.com/v1/userinfo',
-            'revocation_endpoint'                   => 'https://oauth2.whatever.com/revoke',
-            'jwks_uri'                              => $jwks_uri,
-            'response_types_supported'              =>
-                [
-                    'code',
-                    'token',
-                    'id_token',
-                    'code token',
-                    'code id_token',
-                    'token id_token',
-                    'code token id_token',
-                    'none',
-                ],
-            'subject_types_supported'               => ['public',],
-            'id_token_signing_alg_values_supported' => ['RS256',],
-            'scopes_supported'                      => ['openid', 'email', 'profile',],
+            'issuer' => $issuer,
+            'authorization_endpoint' => 'https://accounts.foo.com/o/oauth2/v2/auth',
+            'device_authorization_endpoint' => 'https://oauth2.whatever.com/device/code',
+            'token_endpoint' => 'https://oauth2.whatever.com/token',
+            'userinfo_endpoint' => 'https://openidconnect.whatever.com/v1/userinfo',
+            'revocation_endpoint' => 'https://oauth2.whatever.com/revoke',
+            'jwks_uri' => $jwks_uri,
+            'response_types_supported' => [
+                'code',
+                'token',
+                'id_token',
+                'code token',
+                'code id_token',
+                'token id_token',
+                'code token id_token',
+                'none',
+            ],
+            'subject_types_supported' => ['public'],
+            'id_token_signing_alg_values_supported' => ['RS256'],
+            'scopes_supported' => ['openid', 'email', 'profile'],
             'token_endpoint_auth_methods_supported' => [
                 'client_secret_post',
                 'client_secret_basic',
             ],
-            'claims_supported'                      =>
-                [
-                    'aud',
-                    'email',
-                    'email_verified',
-                    'exp',
-                    'family_name',
-                    'given_name',
-                    'iat',
-                    'iss',
-                    'locale',
-                    'name',
-                    'picture',
-                    'sub',
-                ],
-            'code_challenge_methods_supported'      => ['plain', 'S256',],
-            'grant_types_supported'                 => [
+            'claims_supported' => [
+                'aud',
+                'email',
+                'email_verified',
+                'exp',
+                'family_name',
+                'given_name',
+                'iat',
+                'iss',
+                'locale',
+                'name',
+                'picture',
+                'sub',
+            ],
+            'code_challenge_methods_supported' => ['plain', 'S256'],
+            'grant_types_supported' => [
                 'authorization_code',
                 'refresh_token',
                 'urn:ietf:params:oauth:grant-type:device_code',
-                'urn:ietf:params:oauth:grant-type:jwt-bearer'
+                'urn:ietf:params:oauth:grant-type:jwt-bearer',
             ],
         ];
 
         return $discovery;
     }
 
-    /**
-     * @return \GuzzleHttp\Psr7\Response
-     */
-    protected static function makeDefaultJWKSResponse(?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')
-    ): Response
-    {
-        return static::makeJWKSResponseWithKeys(
+    protected static function makeDefaultJWKSResponse(
+        ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
+    ): Response {
+        return self::makeJWKSResponseWithKeys(
             [
                 [
-                    'e'   => 'AQAB',
-                    'n'   => 'qOpAAmY20iOCNu8c913YoMv01U817A_SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhXaWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8Pzsj-YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs_UVbqurGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw-dCx4mTr-UGJe50LFUfG_bkZ18TTbGxHiJmqYUrnmM9LVyihM3rd_aQa5I_zBtwbMo6_ntDhiF4klYr_xgXhvGlxog0dEw',
+                    'e' => 'AQAB',
+                    'n' => 'qOpAAmY20iOCNu8c913YoMv01U817A_SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhXaWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8Pzsj-YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs_UVbqurGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw-dCx4mTr-UGJe50LFUfG_bkZ18TTbGxHiJmqYUrnmM9LVyihM3rd_aQa5I_zBtwbMo6_ntDhiF4klYr_xgXhvGlxog0dEw',
                     'kid' => '4b83f18023a855587f942e75102251120887f725',
                     'use' => 'sig',
                     'alg' => 'RS256',
-                    'kty' => 'RSA'
+                    'kty' => 'RSA',
                 ],
                 [
                     'kty' => 'RSA',
-                    'n'   => 'mvj-0waJ2owQlFWrlC06goLs9PcNehIzCF0QrkdsYZJXOsipcHCFlXBsgQIdTdLvlCzNI07jSYA-zggycYi96lfDX-FYv_CqC8dRLf9TBOPvUgCyFMCFNUTC69hsrEYMR_J79Wj0MIOffiVr6eX-AaCG3KhBMZMh15KCdn3uVrl9coQivy7bk2Uw-aUJ_b26C0gWYj1DnpO4UEEKBk1X-lpeUMh0B_XorqWeq0NYK2pN6CoEIh0UrzYKlGfdnMU1pJJCsNxMiha-Vw3qqxez6oytOV_AswlWvQc7TkSX6cHfqepNskQb7pGxpgQpy9sA34oIxB_S-O7VS7_h0Qh4vQ',
-                    'e'   => 'AQAB',
+                    'n' => 'mvj-0waJ2owQlFWrlC06goLs9PcNehIzCF0QrkdsYZJXOsipcHCFlXBsgQIdTdLvlCzNI07jSYA-zggycYi96lfDX-FYv_CqC8dRLf9TBOPvUgCyFMCFNUTC69hsrEYMR_J79Wj0MIOffiVr6eX-AaCG3KhBMZMh15KCdn3uVrl9coQivy7bk2Uw-aUJ_b26C0gWYj1DnpO4UEEKBk1X-lpeUMh0B_XorqWeq0NYK2pN6CoEIh0UrzYKlGfdnMU1pJJCsNxMiha-Vw3qqxez6oytOV_AswlWvQc7TkSX6cHfqepNskQb7pGxpgQpy9sA34oIxB_S-O7VS7_h0Qh4vQ',
+                    'e' => 'AQAB',
                     'kid' => '2c6fa6f5950a7ce465fcf247aa0b094828ac952c',
                     'alg' => 'RS256',
-                    'use' => 'sig'
-                ]
+                    'use' => 'sig',
+                ],
             ],
             $expires
         );
     }
 
-
-    /**
-     * @param string $jwks_uri
-     * @param string $issuer
-     *
-     * @return \GuzzleHttp\Psr7\Response
-     */
     protected static function makeDiscoveryDocResponse(
         string $jwks_uri = 'https://foo.anyone.com/oauth2/v3/certs',
-        string $issuer = 'https://accounts.anyone.com'
+        string $issuer = 'https://accounts.anyone.com',
     ): Response {
-        $discovery = static::makeDiscoveryDocument($jwks_uri, $issuer);
+        $discovery = self::makeDiscoveryDocument($jwks_uri, $issuer);
 
         return new Response(
             200,
             ['Content-Type' => 'application/json; charset=UTF-8'],
-            json_encode($discovery)
+            json_encode($discovery, JSON_THROW_ON_ERROR)
         );
     }
 
-    /**
-     * @param string $issuer
-     */
     protected function givenPreviouslyRequestedAndCachedJWKs(
         string $issuer,
-        DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')
+        DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
     ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
-            static::makeDiscoveryDocResponse(),
-            static::makeDefaultJWKSResponse($expires)
+            self::makeDiscoveryDocResponse(),
+            self::makeDefaultJWKSResponse($expires)
         );
 
         $this->newSubject()->getCertificates($issuer);
     }
 
     /**
-     * @param array                   $keys
-     * @param \DateTimeImmutable|null $expires
-     *
-     * @return \GuzzleHttp\Psr7\Response
+     * @param list<array<string, string>> $keys
      */
     protected static function makeJWKSResponseWithKeys(
         array $keys,
-        ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes')
+        ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
     ): Response {
         $headers = [
             'Content-Type' => 'application/json; charset=UTF-8',
         ];
         if ($expires instanceof DateTimeImmutable) {
-            $headers['Expires'] = $expires->format(\DateTimeInterface::RFC1123);
+            $headers['Expires'] = $expires->format(DateTimeInterface::RFC1123);
         }
 
         return new Response(
             200,
             $headers,
-            json_encode(['keys' => $keys])
+            json_encode(['keys' => $keys], JSON_THROW_ON_ERROR)
         );
     }
 
+    /**
+     * @param array<string, string> $expected_certs
+     * @param array<string, Key> $actual_certs
+     */
     private function assertSameOpenSSLPublicKeys(array $expected_certs, array $actual_certs): void
     {
-        $this->assertSame($expected_certs,
-                          array_map(
-                              fn(Key $key) => openssl_pkey_get_details($key->getKeyMaterial())['key'],
-                              $actual_certs
-                          )
+        $this->assertSame(
+            $expected_certs,
+            array_map(
+                $this->getOpenSSLPublicKey(...),
+                $actual_certs
+            )
         );
     }
 
+    private function getOpenSSLPublicKey(Key $key): string
+    {
+        $key_material = $key->getKeyMaterial();
+        if (!$key_material instanceof OpenSSLAsymmetricKey) {
+            $key_material = openssl_pkey_get_public($key_material);
+        }
+
+        $this->assertInstanceOf(OpenSSLAsymmetricKey::class, $key_material);
+        $details = openssl_pkey_get_details($key_material);
+        $this->assertIsArray($details);
+        $this->assertArrayHasKey('key', $details);
+        $this->assertIsString($details['key']);
+
+        return $details['key'];
+    }
 }

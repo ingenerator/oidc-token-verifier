@@ -1,17 +1,16 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
-
 
 use Exception;
 use Firebase\JWT\JWT;
+use stdClass;
 use UnexpectedValueException;
 
 class OIDCTokenVerifier implements TokenVerifier
 {
     /**
-     * @var \Ingenerator\OIDCTokenVerifier\CertificateProvider
+     * @var CertificateProvider
      */
     protected $cert_provider;
 
@@ -22,7 +21,7 @@ class OIDCTokenVerifier implements TokenVerifier
 
     public function __construct(CertificateProvider $cert_provider, string $expected_issuer)
     {
-        $this->cert_provider   = $cert_provider;
+        $this->cert_provider = $cert_provider;
         $this->expected_issuer = $expected_issuer;
     }
 
@@ -44,18 +43,21 @@ class OIDCTokenVerifier implements TokenVerifier
         }
 
         return TokenVerificationResult::createSuccess($payload);
-
     }
 
-    /**
-     * @param string $token
-     *
-     * @return object
-     */
-    protected function fetchCertificatesAndPerformBasicValidation(string $token): object
+    protected function fetchCertificatesAndPerformBasicValidation(string $token): stdClass
     {
-        $certs   = $this->cert_provider->getCertificates($this->expected_issuer);
+        $certs = $this->cert_provider->getCertificates($this->expected_issuer);
         $payload = JWT::decode($token, $certs);
+
+        if (!is_string($payload->iss ?? null)) {
+            throw new UnexpectedValueException(
+                sprintf(
+                    'Token issuer is not a string (got %s',
+                    json_encode($payload->iss ?? null, JSON_THROW_ON_ERROR)
+                )
+            );
+        }
 
         if ($payload->iss !== $this->expected_issuer) {
             throw new UnexpectedValueException(
@@ -65,5 +67,4 @@ class OIDCTokenVerifier implements TokenVerifier
 
         return $payload;
     }
-
 }

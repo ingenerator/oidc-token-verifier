@@ -1,20 +1,17 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Ingenerator\OIDCTokenVerifier;
 
+use RuntimeException;
 
-class TokenVerificationFailedException extends \RuntimeException
+class TokenVerificationFailedException extends RuntimeException
 {
-    /**
-     * @var \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
-     */
-    private $result;
-
-    public function __construct(TokenVerificationResult $result)
-    {
-        $this->result      = $result;
-        $failure_exception = $result->getFailure();
+    public function __construct(
+        private readonly TokenVerificationResult $result,
+    ) {
+        $failure_exception = $this->result->getFailure();
         parent::__construct(
             'Token verification failed: '.$failure_exception->getMessage(),
             0,
@@ -22,9 +19,8 @@ class TokenVerificationFailedException extends \RuntimeException
         );
     }
 
-    public function getVerificationResult(): \Ingenerator\OIDCTokenVerifier\TokenVerificationResult
+    public function getVerificationResult(): TokenVerificationResult
     {
         return $this->result;
     }
-
 }

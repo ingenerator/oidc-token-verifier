@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
-
 
 use DateInterval;
 use DateTimeImmutable;
@@ -16,74 +14,53 @@ use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
-use function array_merge;
-use function get_class;
-use function openssl_pkey_free;
-use function openssl_pkey_get_details;
+use UnexpectedValueException;
+
 use function preg_match;
 use function sprintf;
 
 /**
  * Provides the certificates required to validate OpenID Connect tokens by fetching the discovery /
- * jwk document for the issuer
+ * jwk document for the issuer.
  *
+ * @phpstan-type TProviderOptions array{
+ *   allow_insecure?: bool,
+ *   cache_key_prefix?: string,
+ *   cache_refresh_grace_period?: string,
+ *   cache_expires_if_no_header?: string
+ * }
  */
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
-    /**
-     * @var ClientInterface
-     */
-    private $guzzle;
-
-    /**
-     * @var \Psr\Cache\CacheItemPoolInterface
-     */
-    private $cache;
-
-    /**
-     * @var array
-     */
-    private $options;
-
-    /**
-     * @var \Psr\Log\LoggerInterface
-     */
-    private $logger;
+    private readonly bool $allowInsecure;
+    private readonly string $cacheKeyPrefix;
+    private readonly DateInterval $cacheRefreshGracePeriod;
+    private readonly DateInterval $cacheExpiresIfNoHeader;
 
     /**
      * Options:
      *
      *   * allow_insecure - whether to fetch certs from an http URL (e.g. in development environments)
      *   * cache_key_prefix - the prefix to apply to cache keys to keep them separate from other code
-     *   * cache_key_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
+     *   * cache_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
      *   * cache_expires_if_no_header - how long to cache certificates if the provider does not provide an Expires header
      *
-     * @param \GuzzleHttp\ClientInterface       $guzzle
-     * @param \Psr\Cache\CacheItemPoolInterface $cache
-     * @param array                             $options
+     * @param TProviderOptions $options
      */
     public function __construct(
-        ClientInterface $guzzle,
-        CacheItemPoolInterface $cache,
-        LoggerInterface $logger,
-        array $options
+        private readonly ClientInterface $guzzle,
+        private readonly CacheItemPoolInterface $cache,
+        private readonly LoggerInterface $logger,
+        array $options,
     ) {
-        $this->guzzle  = $guzzle;
-        $this->cache   = $cache;
-        $this->options = array_merge(
-            [
-                'allow_insecure'             => FALSE,
-                'cache_key_prefix'           => 'openid_jwks',
-                'cache_refresh_grace_period' => 'PT2H',
-                'cache_expires_if_no_header' => 'PT10M',
-            ],
-            $options
-        );
-        $this->logger  = $logger;
+        $this->allowInsecure = $options['allow_insecure'] ?? false;
+        $this->cacheKeyPrefix = $options['cache_key_prefix'] ?? 'openid_jwks';
+        $this->cacheExpiresIfNoHeader = new DateInterval($options['cache_expires_if_no_header'] ?? 'PT10M');
+        $this->cacheRefreshGracePeriod = new DateInterval($options['cache_refresh_grace_period'] ?? 'PT2H');
     }
 
     /**
-     * Fetch the public certificates the issuer uses to sign OpenID Connect tokens (using cache)
+     * Fetch the public certificates the issuer uses to sign OpenID Connect tokens (using cache).
      *
      * Uses the issuer's OpenID discovery document (at :issuer:/.well-known/openid-configuration)
      * and the JWKS document that references to build a list of the available certificates.
@@ -96,20 +73,17 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      *
      * The returned data is a simple hash of `key_id (kid)` => `Firebase\JWT\Key`
      *
-     * @param string $issuer
-     *
-     * @return Key[]
-     * @throws \Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException
+     * @throws CertificateDiscoveryFailedException
      */
     public function getCertificates(string $issuer): array
     {
         $this->validateIssuer($issuer);
 
         $cache_item = $this->checkCache($issuer);
-        $prev_data  = $data = $cache_item->get();
+        $data = $prev_data = $cache_item->isHit() ? $cache_item->get() : null;
 
-        if ($cache_item->isHit()) {
-            if ($data['expires'] < new DateTimeImmutable) {
+        if ($data instanceof CachedCertificateData) {
+            if ($data->expires < new DateTimeImmutable()) {
                 // Soft refresh, ignore errors
                 $data = $this->tryToRefreshCertificates($issuer, $data);
             }
@@ -118,16 +92,16 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
             $data = $this->fetchCertificates($issuer);
         }
 
-        if ($data['fetched'] !== ($prev_data['fetched'] ?? NULL)) {
+        if ($data !== $prev_data) {
             $this->cacheResult($cache_item, $data);
         }
 
-        return $data['certs'];
+        return $data->certs;
     }
 
     private function validateIssuer(string $issuer): void
     {
-        $scheme = $this->options['allow_insecure'] ? 'https?' : 'https';
+        $scheme = $this->allowInsecure ? 'https?' : 'https';
 
         if (preg_match('#^'.$scheme.'://.+#', $issuer)) {
             return;
@@ -139,20 +113,24 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     }
 
     /**
-     * @param string $issuer
-     *
-     * @return \Psr\Cache\CacheItemInterface
      * @throws \Psr\Cache\InvalidArgumentException
      */
     private function checkCache(string $issuer): CacheItemInterface
     {
-        $cache_key = $this->options['cache_key_prefix'].'|'.sha1($issuer);
+        $cache_key = sprintf(
+            '%s|%s|%s',
+            $this->cacheKeyPrefix,
+            CachedCertificateData::VERSION,
+            sha1($issuer)
+        );
 
         return $this->cache->getItem($cache_key);
     }
 
-    private function tryToRefreshCertificates(string $issuer, array $previous_cached): array
-    {
+    private function tryToRefreshCertificates(
+        string $issuer,
+        CachedCertificateData $previous_cached,
+    ): CachedCertificateData {
         try {
             return $this->fetchCertificates($issuer);
         } catch (CertificateDiscoveryFailedException $e) {
@@ -165,23 +143,23 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         }
     }
 
-    private function fetchCertificates(string $issuer): array
+    private function fetchCertificates(string $issuer): CachedCertificateData
     {
         try {
             $discovery_url = $issuer.'/.well-known/openid-configuration';
-            $jwks_resp     = $this->discoverAndFetchJWKSuri($discovery_url);
+            $jwks_resp = $this->discoverAndFetchJWKSuri($discovery_url);
 
-            return [
-                'certs'   => $this->parseJWKSToCertsHash($jwks_resp),
-                'fetched' => new DateTimeImmutable,
-                'expires' => $this->calculateResponseExpiryTime($jwks_resp)
-            ];
+            return new CachedCertificateData(
+                $this->parseJWKSToCertsHash($jwks_resp),
+                new DateTimeImmutable(),
+                $this->calculateResponseExpiryTime($jwks_resp)
+            );
         } catch (Exception $e) {
             throw new CertificateDiscoveryFailedException(
                 sprintf(
                     'Failed to fetch openid certs for `%s`: [%s] %s',
                     $issuer,
-                    get_class($e),
+                    $e::class,
                     $e->getMessage()
                 ),
                 $e->getCode(),
@@ -193,14 +171,34 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     private function discoverAndFetchJWKSuri(string $discovery_url): ResponseInterface
     {
         $discovery = $this->guzzle->request('GET', $discovery_url);
-        $discovery = json_decode($discovery->getBody(), TRUE, flags: JSON_THROW_ON_ERROR);
+        $discovery = json_decode($discovery->getBody(), true, flags: JSON_THROW_ON_ERROR);
+
+        if (
+            !is_array($discovery)
+            || !is_string($discovery['jwks_uri'] ?? null)
+            || $discovery['jwks_uri'] === ''
+        ) {
+            throw new UnexpectedValueException(
+                sprintf('Discovery document %s must contain a string jwks_uri', $discovery_url)
+            );
+        }
 
         return $this->guzzle->request('GET', $discovery['jwks_uri']);
     }
 
+    /**
+     * @return array<string, Key>
+     */
     private function parseJWKSToCertsHash(ResponseInterface $keys): array
     {
-        $keys_json = json_decode($keys->getBody(), TRUE, flags: JSON_THROW_ON_ERROR);
+        $keys_json = json_decode($keys->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($keys_json)) {
+            throw new UnexpectedValueException('JWKS document must be an object');
+        }
+
+        if (!is_array($keys_json['keys'] ?? null)) {
+            throw new UnexpectedValueException('JWKS document `keys` member must be a JSON object');
+        }
 
         return JWK::parseKeySet($keys_json);
     }
@@ -210,12 +208,12 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $expires = $jwks_resp->getHeaderLine('Expires');
 
         if ($expires === '') {
-            return (new DateTimeImmutable())
-                ->add(new DateInterval($this->options['cache_expires_if_no_header']));
+            return new DateTimeImmutable()
+                ->add($this->cacheExpiresIfNoHeader);
         }
 
         $res = DateTimeImmutable::createFromFormat(DateTimeInterface::RFC1123, $expires);
-        if ($res === FALSE) {
+        if ($res === false) {
             throw new InvalidArgumentException(
                 'JWKS expires header missing or invalid ('.$expires.')'
             );
@@ -224,11 +222,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         return $res;
     }
 
-    private function cacheResult(CacheItemInterface $cache_item, array $data): void
+    private function cacheResult(CacheItemInterface $cache_item, CachedCertificateData $data): void
     {
         $cache_item->set($data);
         $cache_item->expiresAt(
-            $data['expires']->add(new DateInterval($this->options['cache_refresh_grace_period']))
+            $data->expires->add($this->cacheRefreshGracePeriod)
         );
         $this->cache->save($cache_item);
     }

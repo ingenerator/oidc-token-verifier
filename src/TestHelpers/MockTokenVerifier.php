@@ -1,54 +1,63 @@
 <?php
 
+declare(strict_types=1);
 
 namespace Ingenerator\OIDCTokenVerifier\TestHelpers;
 
-
+use BadMethodCallException;
+use Exception;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
 use PHPUnit\Framework\Assert;
 
-class MockTokenVerifier implements TokenVerifier
+final class MockTokenVerifier implements TokenVerifier
 {
-    protected $calls = [];
-    protected ?TokenVerificationResult $result;
+    /**
+     * @var list<array{string, array<mixed>}>
+     */
+    private array $calls = [];
 
-    public static function willFailWith(\Exception $e)
+    public static function willFailWith(Exception $e): static
     {
-        return new static(TokenVerificationResult::createFailure($e));
+        return new self(TokenVerificationResult::createFailure($e));
     }
 
-    public static function willSucceedWith(array $token_props)
+    /**
+     * @param array<string, mixed> $token_props
+     */
+    public static function willSucceedWith(array $token_props): static
     {
         $obj = (object) $token_props;
 
-        return new static(TokenVerificationResult::createSuccess($obj));
+        return new self(TokenVerificationResult::createSuccess($obj));
     }
 
-    public static function notCalled()
+    public static function notCalled(): static
     {
-        return new static(NULL);
+        return new self(null);
     }
 
-    protected function __construct(?TokenVerificationResult $result)
-    {
-        $this->result = $result;
+    private function __construct(
+        private readonly ?TokenVerificationResult $result,
+    ) {
     }
 
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult
     {
         $this->calls[] = [$token, $extra_constraints->toArray()];
-        if ($this->result) {
+        if ($this->result instanceof TokenVerificationResult) {
             return $this->result;
         }
 
-        throw new \BadMethodCallException('Unexpected call to '.__METHOD__);
+        throw new BadMethodCallException('Unexpected call to '.__METHOD__);
     }
 
-    public function assertVerifiedOnce(string $token, array $extra_constraints = [])
+    /**
+     * @param array<string, string|list<string>> $extra_constraints
+     */
+    public function assertVerifiedOnce(string $token, array $extra_constraints = []): void
     {
         Assert::assertSame([[$token, $extra_constraints]], $this->calls);
     }
-
 }

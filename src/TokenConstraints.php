@@ -1,11 +1,16 @@
 <?php
 
-
 namespace Ingenerator\OIDCTokenVerifier;
 
+use InvalidArgumentException;
+use stdClass;
+
+use function array_diff;
+use function array_intersect_key;
+use function parse_url;
 
 /**
- * Represents extra constraints that must also match for a token
+ * Represents extra constraints that must also match for a token.
  *
  * By default the token verifier only checks the issuer and signature. So if, for example, you are configured
  * to accept tokens issued for a google service account, it will allow *any* service account token generated for
@@ -21,7 +26,14 @@ namespace Ingenerator\OIDCTokenVerifier;
  */
 class TokenConstraints
 {
+    /**
+     * @var array<string, mixed>
+     */
     protected array $constraints = [];
+
+    /**
+     * @var array<string, callable(stdClass, mixed):bool>
+     */
     protected array $matchers;
 
     /**
@@ -29,12 +41,10 @@ class TokenConstraints
      *
      * *ONLY* use this in production code if you are separately validating the email address and/or audience of the
      * token in your own code (see class docs).
-     *
-     * @return TokenConstraints
      */
     public static function signatureCheckOnly(): TokenConstraints
     {
-        return new static([]);
+        return new self([]);
     }
 
     /**
@@ -45,83 +55,114 @@ class TokenConstraints
      *  * `email_exact`: the token `email` must be present, and must match a known email / array of emails
      *  * `email_match`: the token `email` must be present, and must match the provided regex
      *
+     * @param array{
+     *     audience_exact?: string,
+     *     audience_path_and_query?: string,
+     *     email_exact?: string|list<string>,
+     *     email_match?: string,
+     *     ...<string, mixed>
+     * } $constraints
      *
-     * @param array $constraints
-     *
-     * @throws \InvalidArgumentException if a constraint type is not defined
+     * @throws InvalidArgumentException if a constraint type is not defined
      */
     public function __construct(array $constraints)
     {
-        $matchers = \array_intersect_key(static::getAllMatchers(), $constraints);
+        $matchers = array_intersect_key(static::getAllMatchers(), $constraints);
         if (count($matchers) < count($constraints)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 sprintf(
-                    "Unknown constraint types: %s",
-                    implode(",", \array_diff(array_keys($constraints), array_keys($matchers)))
-                )
+                    'Unknown constraint types: %s',
+                    implode(',', array_diff(array_keys($constraints), array_keys($matchers))),
+                ),
             );
         }
 
-        $this->matchers    = $matchers;
+        $this->matchers = $matchers;
         $this->constraints = $constraints;
     }
 
+    /**
+     * @return array<string, callable(stdClass, mixed):bool>
+     */
     protected static function getAllMatchers(): array
     {
-        static $all_matchers;
-        if ( ! $all_matchers) {
-            $all_matchers = [
-                'audience_exact'          => function (\stdClass $payload, string $expect) {
-                    return $expect === $payload->aud;
-                },
-                'audience_path_and_query' => function (\stdClass $payload, string $expect) {
-                    return static::parseUrlPathAndQuery($expect) === static::parseUrlPathAndQuery($payload->aud);
-                },
-                'email_exact'             => function (\stdClass $payload, $expect) {
-                    $expect = is_string($expect) ? [$expect] : $expect;
+        return [
+            'audience_exact' => static fn (stdClass $payload, mixed $expect): bool => $expect === ($payload->aud ?? null),
+            'audience_path_and_query' => self::validateAudiencePathAndQuery(...),
+            'email_exact' => self::validateEmailExact(...),
+            'email_match' => self::validateEmailMatch(...),
+        ];
+    }
 
-                    return in_array($payload->email, $expect, TRUE);
-                },
-                'email_match'             => function (\stdClass $payload, string $regex) {
-                    return (bool) preg_match($regex, $payload->email);
-                },
-            ];
+    private static function validateEmailExact(stdClass $payload, mixed $expect): bool
+    {
+        if (is_string($expect)) {
+            $expect = [$expect];
         }
 
-        return $all_matchers;
+        if (!is_array($expect)) {
+            throw new InvalidArgumentException('Invalid email_exact constraint - expected string or array');
+        }
+
+        return in_array($payload->email ?? null, $expect, true);
+    }
+
+    private static function validateEmailMatch(stdClass $payload, mixed $regex): bool
+    {
+        if (!is_string($regex)) {
+            throw new InvalidArgumentException('Invalid email_match constraint - expected a regex string');
+        }
+
+        if (!is_string($payload->email ?? null)) {
+            return false;
+        }
+
+        return (bool) preg_match($regex, $payload->email);
+    }
+
+    private static function validateAudiencePathAndQuery(stdClass $payload, mixed $expect): bool
+    {
+        if (!is_string($expect)) {
+            throw new InvalidArgumentException('Invalid audience path and query constraint - expected string');
+        }
+
+        if (!is_string($payload->aud ?? null)) {
+            return false;
+        }
+
+        return self::parseUrlPathAndQuery($payload->aud) === self::parseUrlPathAndQuery($expect);
     }
 
     private static function parseUrlPathAndQuery(string $url): string
     {
-        $parts = \parse_url($url);
+        $parts = parse_url($url);
 
-        return ($parts['path'] ?? NULL).'?'.($parts['query'] ?? NULL);
+        return ($parts['path'] ?? null).'?'.($parts['query'] ?? null);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return $this->constraints;
     }
 
     /**
-     * @param \stdClass $token
-     *
      * @throws TokenConstraintFailureException
      */
-    public function mustMatch(\stdClass $token): void
+    public function mustMatch(stdClass $token): void
     {
         $failures = [];
         foreach ($this->constraints as $type => $param) {
             $handler = $this->matchers[$type];
-            if ( ! $handler($token, $param)) {
+            if (!$handler($token, $param)) {
                 $failures[] = $type;
             }
         }
 
-        if ( ! empty($failures)) {
+        if ($failures !== []) {
             throw new TokenConstraintFailureException($failures);
         }
     }
-
-
 }

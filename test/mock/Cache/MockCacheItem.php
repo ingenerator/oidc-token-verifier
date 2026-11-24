@@ -1,50 +1,35 @@
 <?php
 
+declare(strict_types=1);
 
 namespace test\mock\Ingenerator\OIDCTokenVerifier\Cache;
 
-
+use BadMethodCallException;
+use DateInterval;
+use DateTimeImmutable;
+use DateTimeInterface;
 use PHPUnit\Framework\Assert;
 use Psr\Cache\CacheItemInterface;
 
-class MockCacheItem implements CacheItemInterface
+final class MockCacheItem implements CacheItemInterface
 {
+    private ?DateTimeImmutable $expires_at = null;
 
-    /**
-     * @var \DateTimeImmutable|null
-     */
-    protected $expires_at;
-
-    /**
-     * @var string
-     */
-    protected $key;
-
-    /**
-     * @var mixed
-     */
-    protected $value;
-
-    /**
-     * @var bool
-     */
-    protected $is_hit;
-
-    public static function createHit(string $key, $value): MockCacheItem
+    public static function createHit(string $key, mixed $value): MockCacheItem
     {
-        return new static($key, $value, TRUE);
+        return new self($key, $value, true);
     }
 
     public static function createMiss(string $key): MockCacheItem
     {
-        return new static($key, NULL, FALSE);
+        return new self($key, null, false);
     }
 
-    protected function __construct(string $key, $value, bool $is_hit)
-    {
-        $this->key    = $key;
-        $this->value  = $value;
-        $this->is_hit = $is_hit;
+    private function __construct(
+        private readonly string $key,
+        private mixed $value,
+        private bool $is_hit,
+    ) {
     }
 
     public function getKey(): string
@@ -69,29 +54,28 @@ class MockCacheItem implements CacheItemInterface
         return $this;
     }
 
-    public function expiresAt(?\DateTimeInterface $expiration): static
+    public function expiresAt(?DateTimeInterface $expiration): static
     {
-        if ($expiration !== NULL) {
-            Assert::assertInstanceOf(\DateTimeImmutable::class, $expiration);
+        if ($expiration instanceof DateTimeInterface) {
+            Assert::assertInstanceOf(DateTimeImmutable::class, $expiration);
         }
         $this->expires_at = $expiration;
 
         return $this;
     }
 
-    public function expiresAfter(int|\DateInterval|null $time): static
+    public function expiresAfter(int|DateInterval|null $time): static
     {
-        throw new \BadMethodCallException;
+        throw new BadMethodCallException();
     }
 
     public function markAsCacheHit(): void
     {
-        $this->is_hit = TRUE;
+        $this->is_hit = true;
     }
 
-    public function getExpiresAt(): ?\DateTimeImmutable
+    public function getExpiresAt(): ?DateTimeImmutable
     {
         return $this->expires_at;
     }
-
 }
