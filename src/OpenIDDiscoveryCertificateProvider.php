@@ -14,6 +14,7 @@ use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use UnexpectedValueException;
 
 use function preg_match;
 use function sprintf;
@@ -180,6 +181,16 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $discovery = $this->guzzle->request('GET', $discovery_url);
         $discovery = json_decode($discovery->getBody(), true, flags: JSON_THROW_ON_ERROR);
 
+        if (
+            !is_array($discovery)
+            || !is_string($discovery['jwks_uri'] ?? null)
+            || $discovery['jwks_uri'] === ''
+        ) {
+            throw new UnexpectedValueException(
+                sprintf('Discovery document %s must contain a string jwks_uri', $discovery_url)
+            );
+        }
+
         return $this->guzzle->request('GET', $discovery['jwks_uri']);
     }
 
@@ -189,6 +200,13 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     private function parseJWKSToCertsHash(ResponseInterface $keys): array
     {
         $keys_json = json_decode($keys->getBody(), true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($keys_json)) {
+            throw new UnexpectedValueException('JWKS document must be an object');
+        }
+
+        if (!is_array($keys_json['keys'] ?? null)) {
+            throw new UnexpectedValueException('JWKS document `keys` member must be a JSON object');
+        }
 
         return JWK::parseKeySet($keys_json);
     }
