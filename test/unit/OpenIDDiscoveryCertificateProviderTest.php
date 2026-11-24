@@ -27,6 +27,9 @@ use function array_map;
 use function json_encode;
 use function openssl_pkey_get_details;
 
+/**
+ * @phpstan-import-type TProviderOptions from OpenIDDiscoveryCertificateProvider
+ */
 final class OpenIDDiscoveryCertificateProviderTest extends TestCase
 {
     public const string CERT_PEM_7F725 = "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqOpAAmY20iOCNu8c913Y\noMv01U817A/SrTsN6Ocgejp2CoBs9OeibGCzH6TibjxGbHPlC6LOk4dHDrqGkbhX\naWPaISVlaqplzRAxpeEAkJhfuzFqqDtyN3wJPfj0skDn3TeTqmEydwLbexlwLMh8\nPzsj+YwDQsEvono2y9Yq5jb3qNe2SsJUMpAm2lcM49EHdbvcwLx6taVBcs/UVbqu\nrGvYp4AbfzNLlDoGe3lZBZ55OjDRcfxsOJsw+dCx4mTr+UGJe50LFUfG/bkZ18TT\nbGxHiJmqYUrnmM9LVyihM3rd/aQa5I/zBtwbMo6/ntDhiF4klYr/xgXhvGlxog0d\nEwIDAQAB\n-----END PUBLIC KEY-----\n";
@@ -36,7 +39,10 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     private GuzzleClientMocker $guzzle_mocker;
 
-    private $options = [];
+    /**
+     * @var TProviderOptions
+     */
+    private array $options = [];
 
     private NullLogger|TestLogger|MockObject $log;
 
@@ -52,13 +58,19 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $subject->getCertificates('i.am.never.valid');
     }
 
+    /**
+     * @param TProviderOptions $options
+     */
     #[TestWith(['http://foo.bar', [], true])]
     #[TestWith(['http://foo.bar', ['allow_insecure' => true], false])]
     #[TestWith(['http://foo.bar', ['allow_insecure' => false], true])]
     #[TestWith(['https://foo.bar', ['allow_insecure' => true], false])]
     #[TestWith(['https://foo.bar', ['allow_insecure' => false], false])]
-    public function testItThrowsIfIssuerNotHttpsUnlessAllowInsecure($iss, $options, $expect_exception): void
-    {
+    public function testItThrowsIfIssuerNotHttpsUnlessAllowInsecure(
+        string $iss,
+        array $options,
+        bool $expect_exception,
+    ): void {
         $this->options = $options;
         if (!$expect_exception) {
             $this->guzzle_mocker = GuzzleClientMocker::withResponses(
@@ -163,6 +175,9 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         );
     }
 
+    /**
+     * @param TProviderOptions $opts
+     */
     #[TestWith(['https://accounts.anyone.com', [], 'openid_jwks|e6f867764d04c07b7fda10fd4ae7e57be5c289f5'])]
     #[TestWith([
         'https://accounts.anyone.com',
@@ -170,8 +185,11 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         'custom|e6f867764d04c07b7fda10fd4ae7e57be5c289f5',
     ])]
     #[TestWith(['https://my.account.srv', [], 'openid_jwks|01ab28ccb6eeb5269a46ffe723c1a4b5f8bab8c1'])]
-    public function testItSetsCacheKeysBasedOnPrefixAndShaOfIssuer($iss, $opts, $expect): void
-    {
+    public function testItSetsCacheKeysBasedOnPrefixAndShaOfIssuer(
+        string $iss,
+        array $opts,
+        string $expect,
+    ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             self::makeDiscoveryDocResponse(),
             self::makeDefaultJWKSResponse()
@@ -183,11 +201,14 @@ final class OpenIDDiscoveryCertificateProviderTest extends TestCase
         $this->assertSame([$expect], $this->cache->listSavedKeys());
     }
 
+    /**
+     * @param TProviderOptions $opts
+     */
     #[TestWith([[], 'tomorrow 02:00:00'])]
     #[TestWith([['cache_refresh_grace_period' => 'PT4H'], 'tomorrow 04:00:00'])]
     public function testItCachesKeysWithHardTtlGracePeriodAfterExpiresTime(
-        $opts,
-        $expect,
+        array $opts,
+        string $expect,
     ): void {
         $this->guzzle_mocker = GuzzleClientMocker::withResponses(
             self::makeDiscoveryDocResponse(),

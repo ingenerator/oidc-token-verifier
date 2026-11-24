@@ -15,7 +15,6 @@ use Psr\Cache\CacheItemPoolInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
-use function array_merge;
 use function preg_match;
 use function sprintf;
 
@@ -32,6 +31,14 @@ use function sprintf;
  */
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
+    /**
+     * @var array{
+     *     allow_insecure: bool,
+     *     cache_key_prefix: string,
+     *     cache_refresh_grace_period: string,
+     *     cache_expires_if_no_header: string
+     * }
+     */
     private array $options;
 
     /**
@@ -39,8 +46,10 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      *
      *   * allow_insecure - whether to fetch certs from an http URL (e.g. in development environments)
      *   * cache_key_prefix - the prefix to apply to cache keys to keep them separate from other code
-     *   * cache_key_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
+     *   * cache_refresh_grace_period - how long to ignore errors and return a stale value if the certs cant be refreshed
      *   * cache_expires_if_no_header - how long to cache certificates if the provider does not provide an Expires header
+     *
+     * @param TProviderOptions $options
      */
     public function __construct(
         private readonly ClientInterface $guzzle,
@@ -48,15 +57,13 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         private readonly LoggerInterface $logger,
         array $options,
     ) {
-        $this->options = array_merge(
-            [
-                'allow_insecure' => false,
-                'cache_key_prefix' => 'openid_jwks',
-                'cache_refresh_grace_period' => 'PT2H',
-                'cache_expires_if_no_header' => 'PT10M',
-            ],
-            $options
-        );
+        $this->options = [
+            'allow_insecure' => false,
+            'cache_key_prefix' => 'openid_jwks',
+            'cache_refresh_grace_period' => 'PT2H',
+            'cache_expires_if_no_header' => 'PT10M',
+            ...$options,
+        ];
     }
 
     /**
@@ -122,6 +129,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         return $this->cache->getItem($cache_key);
     }
 
+    /**
+     * @param array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable} $previous_cached
+     *
+     * @return array{certs: array<string, Key>, fetched: DateTimeImmutable, expires: DateTimeImmutable}
+     */
     private function tryToRefreshCertificates(string $issuer, array $previous_cached): array
     {
         try {
