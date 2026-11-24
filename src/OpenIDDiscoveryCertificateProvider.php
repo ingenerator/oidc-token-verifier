@@ -16,7 +16,6 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 
 use function array_merge;
-use function get_class;
 use function preg_match;
 use function sprintf;
 
@@ -27,24 +26,9 @@ use function sprintf;
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
     /**
-     * @var ClientInterface
-     */
-    private $guzzle;
-
-    /**
-     * @var CacheItemPoolInterface
-     */
-    private $cache;
-
-    /**
      * @var array
      */
     private $options;
-
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
 
     /**
      * Options:
@@ -55,13 +39,11 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
      *   * cache_expires_if_no_header - how long to cache certificates if the provider does not provide an Expires header
      */
     public function __construct(
-        ClientInterface $guzzle,
-        CacheItemPoolInterface $cache,
-        LoggerInterface $logger,
+        private readonly ClientInterface $guzzle,
+        private readonly CacheItemPoolInterface $cache,
+        private readonly LoggerInterface $logger,
         array $options,
     ) {
-        $this->guzzle = $guzzle;
-        $this->cache = $cache;
         $this->options = array_merge(
             [
                 'allow_insecure' => false,
@@ -71,7 +53,6 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
             ],
             $options
         );
-        $this->logger = $logger;
     }
 
     /**
@@ -169,7 +150,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
                 sprintf(
                     'Failed to fetch openid certs for `%s`: [%s] %s',
                     $issuer,
-                    get_class($e),
+                    $e::class,
                     $e->getMessage()
                 ),
                 $e->getCode(),
@@ -198,7 +179,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         $expires = $jwks_resp->getHeaderLine('Expires');
 
         if ($expires === '') {
-            return (new DateTimeImmutable())
+            return new DateTimeImmutable()
                 ->add(new DateInterval($this->options['cache_expires_if_no_header']));
         }
 

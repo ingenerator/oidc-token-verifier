@@ -12,7 +12,6 @@ use PHPUnit\Framework\Assert;
 class MockTokenVerifier implements TokenVerifier
 {
     protected $calls = [];
-    protected ?TokenVerificationResult $result;
 
     public static function willFailWith(Exception $e)
     {
@@ -31,9 +30,9 @@ class MockTokenVerifier implements TokenVerifier
         return new static(null);
     }
 
-    protected function __construct(?TokenVerificationResult $result)
-    {
-        $this->result = $result;
+    protected function __construct(
+        protected ?TokenVerificationResult $result,
+    ) {
     }
 
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult

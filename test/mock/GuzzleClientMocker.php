@@ -57,9 +57,9 @@ class GuzzleClientMocker
 
     public function assertExactRequestSequence(array $expect)
     {
-        $requests = array_map(function ($hist) { return $hist['request']; }, $this->history);
+        $requests = array_map(fn ($hist) => $hist['request'], $this->history);
         $actual = array_map(
-            function (Request $req) { return $req->getMethod().' '.$req->getUri(); },
+            fn (Request $req) => $req->getMethod().' '.$req->getUri(),
             $requests
         );
         Assert::assertSame($expect, $actual);

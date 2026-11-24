@@ -21,8 +21,6 @@ class MockCacheItem implements CacheItemInterface
      */
     protected $key;
 
-    protected $value;
-
     /**
      * @var bool
      */
@@ -38,10 +36,12 @@ class MockCacheItem implements CacheItemInterface
         return new static($key, null, false);
     }
 
-    protected function __construct(string $key, $value, bool $is_hit)
-    {
+    protected function __construct(
+        string $key,
+        protected $value,
+        bool $is_hit,
+    ) {
         $this->key = $key;
-        $this->value = $value;
         $this->is_hit = $is_hit;
     }
 

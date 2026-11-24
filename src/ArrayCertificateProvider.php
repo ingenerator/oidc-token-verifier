@@ -7,14 +7,9 @@ namespace Ingenerator\OIDCTokenVerifier;
  */
 class ArrayCertificateProvider implements CertificateProvider
 {
-    /**
-     * @var array
-     */
-    private $issuer_certs;
-
-    public function __construct(array $issuer_certs)
-    {
-        $this->issuer_certs = $issuer_certs;
+    public function __construct(
+        private array $issuer_certs,
+    ) {
     }
 
     public function getCertificates(string $issuer): array

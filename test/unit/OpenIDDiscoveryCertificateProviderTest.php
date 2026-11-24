@@ -235,7 +235,7 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         // now.
         $cache_expires = $cache_item->getExpiresAt();
         $this->assertGreaterThan($time_start->add($one_hour_thirty), $cache_expires);
-        $this->assertLessThan((new DateTimeImmutable())->add($one_hour_thirty), $cache_expires);
+        $this->assertLessThan(new DateTimeImmutable()->add($one_hour_thirty), $cache_expires);
     }
 
     public function testIfCachePresentItReturnsCachedValueWithoutHttpRequests()
@@ -410,7 +410,8 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
         return $discovery;
     }
 
-    protected static function makeDefaultJWKSResponse(?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
+    protected static function makeDefaultJWKSResponse(
+        ?DateTimeImmutable $expires = new DateTimeImmutable('+20 minutes'),
     ): Response {
         return static::makeJWKSResponseWithKeys(
             [
@@ -480,7 +481,8 @@ class OpenIDDiscoveryCertificateProviderTest extends TestCase
 
     private function assertSameOpenSSLPublicKeys(array $expected_certs, array $actual_certs): void
     {
-        $this->assertSame($expected_certs,
+        $this->assertSame(
+            $expected_certs,
             array_map(
                 fn (Key $key) => openssl_pkey_get_details($key->getKeyMaterial())['key'],
                 $actual_certs

@@ -6,15 +6,10 @@ use RuntimeException;
 
 class TokenVerificationFailedException extends RuntimeException
 {
-    /**
-     * @var TokenVerificationResult
-     */
-    private $result;
-
-    public function __construct(TokenVerificationResult $result)
+    public function __construct(
+        private readonly TokenVerificationResult $result)
     {
-        $this->result = $result;
-        $failure_exception = $result->getFailure();
+        $failure_exception = $this->result->getFailure();
         parent::__construct(
             'Token verification failed: '.$failure_exception->getMessage(),
             0,
