@@ -32,15 +32,10 @@ use function sprintf;
  */
 class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
-    /**
-     * @var array{
-     *     allow_insecure: bool,
-     *     cache_key_prefix: string,
-     *     cache_refresh_grace_period: string,
-     *     cache_expires_if_no_header: string
-     * }
-     */
-    private array $options;
+    private readonly bool $allowInsecure;
+    private readonly string $cacheKeyPrefix;
+    private readonly DateInterval $cacheRefreshGracePeriod;
+    private readonly DateInterval $cacheExpiresIfNoHeader;
 
     /**
      * Options:
@@ -58,13 +53,10 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
         private readonly LoggerInterface $logger,
         array $options,
     ) {
-        $this->options = [
-            'allow_insecure' => false,
-            'cache_key_prefix' => 'openid_jwks',
-            'cache_refresh_grace_period' => 'PT2H',
-            'cache_expires_if_no_header' => 'PT10M',
-            ...$options,
-        ];
+        $this->allowInsecure = $options['allow_insecure'] ?? false;
+        $this->cacheKeyPrefix = $options['cache_key_prefix'] ?? 'openid_jwks';
+        $this->cacheExpiresIfNoHeader = new DateInterval($options['cache_expires_if_no_header'] ?? 'PT10M');
+        $this->cacheRefreshGracePeriod = new DateInterval($options['cache_refresh_grace_period'] ?? 'PT2H');
     }
 
     /**
@@ -109,7 +101,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 
     private function validateIssuer(string $issuer): void
     {
-        $scheme = $this->options['allow_insecure'] ? 'https?' : 'https';
+        $scheme = $this->allowInsecure ? 'https?' : 'https';
 
         if (preg_match('#^'.$scheme.'://.+#', $issuer)) {
             return;
@@ -127,7 +119,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     {
         $cache_key = sprintf(
             '%s|%s|%s',
-            $this->options['cache_key_prefix'],
+            $this->cacheKeyPrefix,
             CachedCertificateData::VERSION,
             sha1($issuer)
         );
@@ -217,7 +209,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 
         if ($expires === '') {
             return new DateTimeImmutable()
-                ->add(new DateInterval($this->options['cache_expires_if_no_header']));
+                ->add($this->cacheExpiresIfNoHeader);
         }
 
         $res = DateTimeImmutable::createFromFormat(DateTimeInterface::RFC1123, $expires);
@@ -234,7 +226,7 @@ class OpenIDDiscoveryCertificateProvider implements CertificateProvider
     {
         $cache_item->set($data);
         $cache_item->expiresAt(
-            $data->expires->add(new DateInterval($this->options['cache_refresh_grace_period']))
+            $data->expires->add($this->cacheRefreshGracePeriod)
         );
         $this->cache->save($cache_item);
     }
