@@ -37,7 +37,7 @@ class TokenConstraints
      */
     public static function signatureCheckOnly(): TokenConstraints
     {
-        return new static([]);
+        return new self([]);
     }
 
     /**
