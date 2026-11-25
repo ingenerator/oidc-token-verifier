@@ -83,11 +83,19 @@ The library provides support for these common constraints out of the box. Pass c
 `TokenConstraints`:
 
 ```php
+// Note that all constraints passed into the TokenConstraints must pass (it is an AND operation).
 $verifier->verify($jwt, new TokenConstraints(
     // The audience (`aud` claim) of the JWT must exactly match this value
     // Some google services use the URL that is being called. Others provide a custom value - an app/client ID, etc
     new AudienceExactTokenConstraint('https://my.app.com/task-handler-url'),
-    
+
+
+    // The JWT must contain an `email` claim, and it must exactly match this value
+    new EmailExactTokenConstraint('my-service-account@myproject.serviceaccount.test'),
+));
+
+// Other constraint types:
+$verifier->verify($jwt, new TokenConstraints(
     // The audience (`aud` claim) of the JWT is a URL and the path (and querystring if any) must match this value
     // In some loadbalanced environments it's hard to detect the external protocol or hostname from an incoming
     // request - e.g. a request to https://my.app.loadbalancer may appear to PHP as being to http://app.cluster.local.
@@ -98,17 +106,18 @@ $verifier->verify($jwt, new TokenConstraints(
     // are instead protected by using different service accounts for each separate logical system so that e.g a token
     // generated for QA cannot ever authorise that operation in production regardless of the hostnames used.
     new AudiencePathAndQueryTokenConstraint('http://appserver.internal/action?record_id=15'),
+));
 
-    // The JWT must contain an `email` claim, and it must exactly match this value
-    new EmailExactTokenConstraint('my-service-account@myproject.serviceaccount.test'),
-    
+$verifier->verify($jwt, new TokenConstraints(
     // The JWT must contain an `email` claim, and it must exactly match one of these values
     // Useful when you have a short list of service accounts that may be allowed to call your endpoint    
     new EmailExactTokenConstraint(
         'my-service-account@myproject.serviceaccount.test',
         'my-service-account@myotherproject.serviceaccount.test',
     ),
-    
+));
+
+$verifier->verify($jwt, new TokenConstraints(
     // The JWT must contain an `email` claim, and it must match this regex
     // Useful when you want to e.g. authorize all service accounts in a particular domain - use with caution!
     new EmailMatchTokenConstraint('/@myproject.serviceaccount.test$/'),

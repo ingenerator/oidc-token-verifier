@@ -45,7 +45,7 @@ final class OIDCTokenVerifier implements TokenVerifier
         if (!is_string($payload->iss ?? null)) {
             throw new UnexpectedValueException(
                 sprintf(
-                    'Token issuer is not a string (got %s',
+                    'Token issuer is not a string (got %s)',
                     json_encode($payload->iss ?? null, JSON_THROW_ON_ERROR)
                 )
             );
