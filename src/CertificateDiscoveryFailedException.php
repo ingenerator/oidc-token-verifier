@@ -6,6 +6,6 @@ namespace Ingenerator\OIDCTokenVerifier;
 
 use RuntimeException;
 
-class CertificateDiscoveryFailedException extends RuntimeException
+final class CertificateDiscoveryFailedException extends RuntimeException
 {
 }

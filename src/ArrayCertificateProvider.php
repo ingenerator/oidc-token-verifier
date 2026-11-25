@@ -7,7 +7,7 @@ namespace Ingenerator\OIDCTokenVerifier;
  *
  * @phpstan-import-type TCertificateKeyMap from CertificateProvider
  */
-class ArrayCertificateProvider implements CertificateProvider
+final class ArrayCertificateProvider implements CertificateProvider
 {
     /**
      * @param array<string, TCertificateKeyMap> $issuer_certs

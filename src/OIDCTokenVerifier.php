@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ingenerator\OIDCTokenVerifier;
 
 use Exception;
@@ -7,22 +9,12 @@ use Firebase\JWT\JWT;
 use stdClass;
 use UnexpectedValueException;
 
-class OIDCTokenVerifier implements TokenVerifier
+final class OIDCTokenVerifier implements TokenVerifier
 {
-    /**
-     * @var CertificateProvider
-     */
-    protected $cert_provider;
-
-    /**
-     * @var string
-     */
-    protected $expected_issuer;
-
-    public function __construct(CertificateProvider $cert_provider, string $expected_issuer)
-    {
-        $this->cert_provider = $cert_provider;
-        $this->expected_issuer = $expected_issuer;
+    public function __construct(
+        private readonly CertificateProvider $cert_provider,
+        private readonly string $expected_issuer,
+    ) {
     }
 
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult
@@ -45,7 +37,7 @@ class OIDCTokenVerifier implements TokenVerifier
         return TokenVerificationResult::createSuccess($payload);
     }
 
-    protected function fetchCertificatesAndPerformBasicValidation(string $token): stdClass
+    private function fetchCertificatesAndPerformBasicValidation(string $token): stdClass
     {
         $certs = $this->cert_provider->getCertificates($this->expected_issuer);
         $payload = JWT::decode($token, $certs);
