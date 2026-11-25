@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Ingenerator\OIDCTokenVerifier;
 
 use Exception;
@@ -9,20 +11,10 @@ use UnexpectedValueException;
 
 class OIDCTokenVerifier implements TokenVerifier
 {
-    /**
-     * @var CertificateProvider
-     */
-    protected $cert_provider;
-
-    /**
-     * @var string
-     */
-    protected $expected_issuer;
-
-    public function __construct(CertificateProvider $cert_provider, string $expected_issuer)
-    {
-        $this->cert_provider = $cert_provider;
-        $this->expected_issuer = $expected_issuer;
+    public function __construct(
+        protected CertificateProvider $cert_provider,
+        protected string $expected_issuer,
+    ) {
     }
 
     public function verify(string $token, TokenConstraints $extra_constraints): TokenVerificationResult
