@@ -6,6 +6,7 @@ namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
 use Ingenerator\OIDCTokenVerifier\Constraint\AudienceExactTokenConstraint;
 use Ingenerator\OIDCTokenVerifier\Constraint\EmailExactTokenConstraint;
+use Ingenerator\OIDCTokenVerifier\Constraint\MatchAnyTokenConstraint;
 use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
 use Ingenerator\OIDCTokenVerifier\TokenConstraintInterface;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
@@ -28,7 +29,7 @@ final class TokenConstraintsTest extends TestCase
     {
         $constraints = TokenConstraints::signatureCheckOnly();
 
-        $this->assertSame([], $constraints->toArray());
+        $this->assertEquals([new MatchAnyTokenConstraint()], $constraints->toArray());
         $constraints->mustMatch(new stdClass());
     }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ingenerator\OIDCTokenVerifier;
 
+use Ingenerator\OIDCTokenVerifier\Constraint\MatchAnyTokenConstraint;
 use stdClass;
 
 /**
@@ -36,11 +37,12 @@ final class TokenConstraints
      */
     public static function signatureCheckOnly(): TokenConstraints
     {
-        return new self();
+        return new self(new MatchAnyTokenConstraint());
     }
 
-    public function __construct(TokenConstraintInterface ...$constraints)
+    public function __construct(TokenConstraintInterface $constraint, TokenConstraintInterface ...$constraints)
     {
+        array_unshift($constraints, $constraint);
         $this->constraints = array_values($constraints);
     }
 
