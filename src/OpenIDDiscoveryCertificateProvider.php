@@ -30,7 +30,7 @@ use function sprintf;
  *   cache_expires_if_no_header?: string
  * }
  */
-class OpenIDDiscoveryCertificateProvider implements CertificateProvider
+final class OpenIDDiscoveryCertificateProvider implements CertificateProvider
 {
     private readonly bool $allowInsecure;
     private readonly string $cacheKeyPrefix;

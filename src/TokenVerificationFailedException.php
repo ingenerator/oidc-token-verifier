@@ -6,7 +6,7 @@ namespace Ingenerator\OIDCTokenVerifier;
 
 use RuntimeException;
 
-class TokenVerificationFailedException extends RuntimeException
+final class TokenVerificationFailedException extends RuntimeException
 {
     public function __construct(
         private readonly TokenVerificationResult $result,
