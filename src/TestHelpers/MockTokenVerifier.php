@@ -57,7 +57,7 @@ final class MockTokenVerifier implements TokenVerifier
     /**
      * @param list<TokenConstraintInterface> $extra_constraints
      */
-    public function assertVerifiedOnce(string $token, array $extra_constraints = []): void
+    public function assertVerifiedOnce(string $token, array $extra_constraints): void
     {
         Assert::assertEquals([[$token, $extra_constraints]], $this->calls);
     }
