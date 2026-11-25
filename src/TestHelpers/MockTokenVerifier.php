@@ -6,6 +6,7 @@ namespace Ingenerator\OIDCTokenVerifier\TestHelpers;
 
 use BadMethodCallException;
 use Exception;
+use Ingenerator\OIDCTokenVerifier\TokenConstraintInterface;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
 use Ingenerator\OIDCTokenVerifier\TokenVerificationResult;
 use Ingenerator\OIDCTokenVerifier\TokenVerifier;
@@ -14,7 +15,7 @@ use PHPUnit\Framework\Assert;
 final class MockTokenVerifier implements TokenVerifier
 {
     /**
-     * @var list<array{string, array<mixed>}>
+     * @var list<array{string, list<TokenConstraintInterface>}>
      */
     private array $calls = [];
 
@@ -54,10 +55,10 @@ final class MockTokenVerifier implements TokenVerifier
     }
 
     /**
-     * @param array<string, string|list<string>> $extra_constraints
+     * @param list<TokenConstraintInterface> $extra_constraints
      */
     public function assertVerifiedOnce(string $token, array $extra_constraints = []): void
     {
-        Assert::assertSame([[$token, $extra_constraints]], $this->calls);
+        Assert::assertEquals([[$token, $extra_constraints]], $this->calls);
     }
 }

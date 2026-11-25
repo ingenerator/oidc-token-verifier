@@ -9,6 +9,7 @@ use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
 use Ingenerator\OIDCTokenVerifier\ArrayCertificateProvider;
 use Ingenerator\OIDCTokenVerifier\CertificateDiscoveryFailedException;
+use Ingenerator\OIDCTokenVerifier\Constraint\AudienceExactTokenConstraint;
 use Ingenerator\OIDCTokenVerifier\OIDCTokenVerifier;
 use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
@@ -204,7 +205,7 @@ final class OIDCTokenVerifierTest extends TestCase
         $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://my-site.com/handler']);
         $result = $this->newSubject()->verify(
             $token,
-            new TokenConstraints(['audience_exact' => 'http://my-site.com/handler'])
+            new TokenConstraints(new AudienceExactTokenConstraint('http://my-site.com/handler'))
         );
         $this->assertTrue($result->isVerified());
     }
@@ -214,7 +215,7 @@ final class OIDCTokenVerifierTest extends TestCase
         $token = $this->givenTokenThatWillPassBasicVerification(['aud' => 'http://some-other-site.com/handler']);
         $result = $this->newSubject()->verify(
             $token,
-            new TokenConstraints(['audience_exact' => 'http://my-site.com/handler'])
+            new TokenConstraints(new AudienceExactTokenConstraint('http://my-site.com/handler'))
         );
         $this->assertFalse($result->isVerified());
         $this->assertInstanceOf(TokenConstraintFailureException::class, $result->getFailure());

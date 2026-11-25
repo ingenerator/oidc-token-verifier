@@ -4,201 +4,153 @@ declare(strict_types=1);
 
 namespace test\unit\Ingenerator\OIDCTokenVerifier;
 
+use Ingenerator\OIDCTokenVerifier\Constraint\AudienceExactTokenConstraint;
+use Ingenerator\OIDCTokenVerifier\Constraint\EmailExactTokenConstraint;
+use Ingenerator\OIDCTokenVerifier\Constraint\MatchAnyTokenConstraint;
 use Ingenerator\OIDCTokenVerifier\TokenConstraintFailureException;
+use Ingenerator\OIDCTokenVerifier\TokenConstraintInterface;
 use Ingenerator\OIDCTokenVerifier\TokenConstraints;
-use InvalidArgumentException;
-use PHPUnit\Framework\Attributes\TestWith;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 
 final class TokenConstraintsTest extends TestCase
 {
-    public function testItIsInitialisable(): void
+    public function testItIsInitialisableWithAListOfConstraints(): void
     {
-        $this->assertInstanceOf(TokenConstraints::class, new TokenConstraints([]));
+        $constraint = new AudienceExactTokenConstraint('https://my-site.com/handler');
+        $subject = new TokenConstraints($constraint);
+
+        $this->assertInstanceOf(TokenConstraints::class, $subject);
+        $this->assertSame([$constraint], $subject->toArray());
     }
 
     public function testItsSignatureCheckOnlyConstructorMatchesAnyToken(): void
     {
-        $this->assertConstraintValidation(true, null, TokenConstraints::signatureCheckOnly(), new stdClass());
+        $constraints = TokenConstraints::signatureCheckOnly();
+
+        $this->assertEquals([new MatchAnyTokenConstraint()], $constraints->toArray());
+        $constraints->mustMatch(new stdClass());
     }
 
-    public function testItThrowsOnConstructionWithUnknownConstraintType(): void
+    /**
+     * @return iterable<string, array{stdClass, string|null}>
+     */
+    public static function constraintMatchCases(): iterable
     {
-        $this->expectException(InvalidArgumentException::class);
-        new TokenConstraints(['not-a-constraint' => 'whatever']);
+        yield 'matches none' => [
+            (object) ['aud' => 'https://other.example', 'email' => 'other@example.test'],
+            'Token did not match constraints: [audience_exact, email_exact]',
+        ];
+
+        yield 'matches first only' => [
+            (object) ['aud' => 'https://expected.example', 'email' => 'other@example.test'],
+            'Token did not match constraints: [email_exact]',
+        ];
+
+        yield 'matches last only' => [
+            (object) ['aud' => 'https://other.example', 'email' => 'expected@example.test'],
+            'Token did not match constraints: [audience_exact]',
+        ];
+
+        yield 'matches both' => [
+            (object) ['aud' => 'https://expected.example', 'email' => 'expected@example.test'],
+            null,
+        ];
     }
 
-    #[TestWith(['https://someone-elses-site.com/handler', false, '[audience_exact]'])]
-    #[TestWith(['https://my-site.com/handler', true, null])]
-    public function testItCanValidateExactAudienceMatch(
-        string $constraint,
-        bool $expect_valid,
-        ?string $expect_msg,
-    ): void {
-        $subject = new TokenConstraints(['audience_exact' => $constraint]);
-        $token = new stdClass();
-        $token->aud = 'https://my-site.com/handler';
-        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
-    }
-
-    /**
-     * @param array<mixed> $token
-     */
-    #[TestWith([[]])]
-    #[TestWith([['aud' => true]])]
-    #[TestWith([['aud' => null]])]
-    public function testItFailsExactAudienceIfAudienceClaimMissingOrInvalid(array $token): void
-    {
-        $subject = new TokenConstraints(['audience_exact' => 'https://some.site/foo']);
-        $token = (object) $token;
-        $this->assertConstraintValidation(false, 'audience_exact', $subject, $token);
-    }
-
-    /**
-     * @param string|array<mixed> $token
-     */
-    #[TestWith(['https://my.site/handler', 'https://my.site/handler', true, null])]
-    #[TestWith(['https://my.site/handler?foo=bar&baz=boo', 'https://my.site/handler?foo=bar&baz=boo', true, null])]
-    #[TestWith(['https://my.site/handler?foo=bar&baz=boo', 'http://my.site/handler?foo=bar&baz=boo', true, null])]
-    #[TestWith(['https://my.site/handler?foo=bar&baz=boo', 'http://internal.host/handler?foo=bar&baz=boo', true, null])]
-    #[TestWith(['https://my.site/anything', 'http://my.site/handler', false, '[audience_path_and_query]'])]
-    #[TestWith(['https://my.site/h?foo=bar&baz=boo', 'http://my.site/h', false, '[audience_path_and_query]'])]
-    #[TestWith([
-        'https://my.site/h?foo=bar&baz=boo',
-        'http://my.site/h?other=query',
-        false,
-        '[audience_path_and_query]',
-    ])]
-    #[TestWith([
-        'https://my.site/h?foo=bar&baz=boo',
-        'http://my.site/wrong?foo=bar&baz=boo',
-        false,
-        '[audience_path_and_query]',
-    ])]
-    #[TestWith([
-        'https://my.site/h?foo=bar&baz=boo',
-        'http://my.site/h?baz=boo&foo=bar',
-        false,
-        '[audience_path_and_query]',
-    ])]
-    #[TestWith(['https://my.site/', 'http://my.site/', true, null])]
-    #[TestWith(['https://my.site/', 'http://my.site/h', false, '[audience_path_and_query]'])]
-    #[TestWith(['https://any.thing', 'wierd corrupt url', false, '[audience_path_and_query]'])]
-    public function testItCanValidateAudiencePathAndQuery(
-        string $constraint,
-        string|array $token,
-        bool $expect_valid,
-        ?string $expect_msg,
-    ): void {
-        $subject = new TokenConstraints(['audience_path_and_query' => $constraint]);
-        if (is_string($token)) {
-            $token = ['aud' => $token];
-        }
-        $token = (object) $token;
-        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
-    }
-
-    /** @param string|list<string> $constraint */
-    #[TestWith(['my@service.acct', true, null])]
-    #[TestWith(['differ@ent.service', false, '[email_exact]'])]
-    #[TestWith([['my@service.acct'], true, null])]
-    #[TestWith([['my@service.acct', 'differ@ent.service'], true, null])]
-    #[TestWith([['an@other.svc', 'differ@ent.service'], false, '[email_exact]'])]
-    public function testItCanValidateExactEmailMatchAgainstList(
-        string|array $constraint,
-        bool $expect_valid,
-        ?string $expect_msg,
-    ): void {
-        $subject = new TokenConstraints(['email_exact' => $constraint]);
-        $token = new stdClass();
-        $token->email = 'my@service.acct';
-        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
-    }
-
-    /**
-     * @param array<mixed> $token
-     */
-    #[TestWith([[]])]
-    #[TestWith([['email' => true]])]
-    public function testItFailsExactEmailIfEmailClaimMissingOrInvalid(array $token): void
-    {
-        $subject = new TokenConstraints(['email_exact' => 'any@mail.net']);
-        $token = (object) $token;
-        $this->assertConstraintValidation(false, 'email_exact', $subject, $token);
-    }
-
-    #[TestWith(['/^my@service\\.acct$/', true, null])]
-    #[TestWith(['/@service\\.acct$/', true, null])]
-    #[TestWith(['/@prod-services.accts$/', false, '[email_match]'])]
-    public function testItCanValidateEmailBeginsWith(
-        string $constraint,
-        bool $expect_valid,
-        ?string $expect_msg,
-    ): void {
-        $subject = new TokenConstraints(['email_match' => $constraint]);
-        $token = new stdClass();
-        $token->email = 'my@service.acct';
-        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
-    }
-
-    /**
-     * @param array<mixed> $token
-     */
-    #[TestWith([[]])]
-    #[TestWith([['email' => true]])]
-    public function testItFailsEmailMatchIfEmailClaimMissingOrInvalid(array $token): void
-    {
-        $subject = new TokenConstraints(['email_match' => '/@foo.bar$/']);
-        $token = (object) $token;
-        $this->assertConstraintValidation(false, 'email_match', $subject, $token);
-    }
-
-    /**
-     * @param array{email_exact: string, audience_exact: string} $contraints
-     */
-    #[TestWith([['email_exact' => 'foo@acct.test', 'audience_exact' => 'http://foo.bar/com'], true, null])]
-    #[TestWith([['email_exact' => 'bar@acct.test', 'audience_exact' => 'http://foo.bar/com'], false, '[email_exact]'])]
-    #[TestWith([['email_exact' => 'foo@acct.test', 'audience_exact' => 'http://bar.com/'], false, '[audience_exact]'])]
-    #[TestWith([['email_exact' => 'bar@acct.test', 'audience_exact' => 'http://bar.com/'], false, '[audience_exact, email_exact]'])]
-    public function testItValidatesMultipleConstraintsAndRequiresAllToPass(
-        array $contraints,
-        bool $expect_valid,
-        ?string $expect_msg,
-    ): void {
-        $subject = new TokenConstraints($contraints);
-        $token = new stdClass();
-        $token->aud = 'http://foo.bar/com';
-        $token->email = 'foo@acct.test';
-        $this->assertConstraintValidation($expect_valid, $expect_msg, $subject, $token);
-    }
-
-    public function testItsToArrayReturnsInputConstraints(): void
-    {
-        $constraints = ['email_exact' => ['foo@bar.com', 'bil@bar.com'], 'audience_exact' => 'http://fo.bar'];
-        $subject = new TokenConstraints($constraints);
-        $this->assertSame($constraints, $subject->toArray());
-    }
-
-    /**
-     * @param ($expect_valid is true ? null : string) $expect_msg
-     */
-    private function assertConstraintValidation(
-        bool $expect_valid,
-        ?string $expect_msg,
-        TokenConstraints $subject,
+    #[DataProvider('constraintMatchCases')]
+    public function testItRequiresEveryConstraintToMatchAndReportsFailingNames(
         stdClass $token,
+        ?string $expected_message,
+    ): void {
+        $constraints = new TokenConstraints(
+            new AudienceExactTokenConstraint('https://expected.example'),
+            new EmailExactTokenConstraint('expected@example.test'),
+        );
+
+        if ($expected_message === null) {
+            $constraints->mustMatch($token);
+            /* @phpstan-ignore method.alreadyNarrowedType (just need an assertion to show phpunit we asserted) */
+            $this->assertTrue(true, 'Should not throw');
+        } else {
+            $this->assertConstraintsFailWithMessage($constraints, $token, $expected_message);
+        }
+    }
+
+    public function testItReportsAllFailingConstraintNamesInDeterministicOrder(): void
+    {
+        $constraints = new TokenConstraints(
+            new EmailExactTokenConstraint('expected@example.test'),
+            new AudienceExactTokenConstraint('https://expected.example'),
+        );
+
+        $this->assertConstraintsFailWithMessage(
+            $constraints,
+            (object) [
+                'aud' => 'https://other.example',
+                'email' => 'other@example.test',
+            ],
+            'Token did not match constraints: [audience_exact, email_exact]',
+        );
+    }
+
+    public function testItEvaluatesRepeatedConstraintNamesAndReportsEachFailure(): void
+    {
+        $constraint = new class implements TokenConstraintInterface {
+            public static int $calls = 0;
+
+            public string $name { get => 'always_fail'; }
+
+            public function matches(stdClass $payload): bool
+            {
+                ++self::$calls;
+
+                return false;
+            }
+        };
+        $constraint::class::$calls = 0;
+        $another_constraint = new ($constraint::class)();
+
+        $this->assertConstraintsFailWithMessage(
+            new TokenConstraints($constraint, $another_constraint),
+            new stdClass(),
+            'Token did not match constraints: [always_fail, always_fail]',
+        );
+        $this->assertSame(2, $constraint::class::$calls);
+    }
+
+    public function testItSupportsCustomConstraints(): void
+    {
+        $constraint = new class implements TokenConstraintInterface {
+            public string $name { get => 'custom_claim'; }
+
+            public function matches(stdClass $payload): bool
+            {
+                return ($payload->custom_claim ?? null) === 'allowed';
+            }
+        };
+        $constraints = new TokenConstraints($constraint);
+
+        $this->assertSame([$constraint], $constraints->toArray());
+        $constraints->mustMatch((object) ['custom_claim' => 'allowed']);
+        $this->assertConstraintsFailWithMessage(
+            $constraints,
+            (object) ['custom_claim' => 'not allowed'],
+            'Token did not match constraints: [custom_claim]',
+        );
+    }
+
+    private function assertConstraintsFailWithMessage(
+        TokenConstraints $constraints,
+        stdClass $token,
+        string $message,
     ): void {
         try {
-            $subject->mustMatch($token);
+            $constraints->mustMatch($token);
+            $this->fail('Expected constraints to fail');
         } catch (TokenConstraintFailureException $e) {
-        }
-
-        if ($expect_valid) {
-            $this->assertFalse(isset($e), 'Token should be valid - should not get exception');
-        } else {
-            $this->assertTrue(isset($e), 'Token should be invalid - should get exception');
-            $this->assertStringContainsString($expect_msg, $e->getMessage());
+            $this->assertSame($message, $e->getMessage());
         }
     }
 }

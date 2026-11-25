@@ -79,13 +79,14 @@ For security, **additional verification is almost always required**. For example
 produce a valid JWT signed by `https://accounts.google.com` so you would usually want to authorize based on both
 the `audience` (that the token was created for) and the `email` (the service account used to create it).
 
-The library provides support for these common constraints out of the box:
+The library provides support for these common constraints out of the box. Pass constraint objects to
+`TokenConstraints`:
 
 ```php
-$verifier->verify($jwt, new TokenConstraints([
+$verifier->verify($jwt, new TokenConstraints(
     // The audience (`aud` claim) of the JWT must exactly match this value
     // Some google services use the URL that is being called. Others provide a custom value - an app/client ID, etc
-    'audience_exact' => 'https://my.app.com/task-handler-url',
+    new AudienceExactTokenConstraint('https://my.app.com/task-handler-url'),
     
     // The audience (`aud` claim) of the JWT is a URL and the path (and querystring if any) must match this value
     // In some loadbalanced environments it's hard to detect the external protocol or hostname from an incoming
@@ -96,45 +97,43 @@ $verifier->verify($jwt, new TokenConstraints([
     // alone prevents using a stolen token to perform a different operation. Cross-environment / cross-site attacks
     // are instead protected by using different service accounts for each separate logical system so that e.g a token
     // generated for QA cannot ever authorise that operation in production regardless of the hostnames used.
-    'audience_path_and_query' => 'http://appserver.internal/action?record_id=15',
+    new AudiencePathAndQueryTokenConstraint('http://appserver.internal/action?record_id=15'),
 
     // The JWT must contain an `email` claim, and it must exactly match this value
-    'email_exact' => 'my-service-account@myproject.serviceaccount.test',
+    new EmailExactTokenConstraint('my-service-account@myproject.serviceaccount.test'),
     
     // The JWT must contain an `email` claim, and it must exactly match one of these values
     // Useful when you have a short list of service accounts that may be allowed to call your endpoint    
-    'email_exact' => [
+    new EmailExactTokenConstraint(
         'my-service-account@myproject.serviceaccount.test',
         'my-service-account@myotherproject.serviceaccount.test',
-    ],
+    ),
     
     // The JWT must contain an `email` claim, and it must match this regex
     // Useful when you want to e.g. authorize all service accounts in a particular domain - use with caution!
-    'email_match' => '/@myproject.serviceaccount.test$/'  
-]));
+    new EmailMatchTokenConstraint('/@myproject.serviceaccount.test$/'),
+));
 ```
 
-You can easily support additional custom constraints e.g. to verify additional custom claims:
+Add the corresponding imports for the built-in constraint classes. You can also support additional custom constraints by
+implementing `TokenConstraintInterface`, for example to verify additional custom claims:
 
 ```php
-class MyTokenConstraints extends TokenConstraints {
-    
-    protected static function getAllMatchers(): array {
-        $matchers = parent::getAllMatchers();
-        // Constraint matchers are an array of {name} => boolean function indicating if the payload matches
-        $matchers['user_role_contains'] = function (\stdClass $payload, string $expect) {
-            // $payload is the decoded JWT
-            // We check it has a custom claim ->user_roles as an array of roles
-            return in_array($expect, $payload->user_roles ?? [], TRUE);       
-        };
-        return $matchers;    
+class UserRoleContainsTokenConstraint implements TokenConstraintInterface {
+    public string $name { get => 'user_role_contains'; }
+
+    public function __construct(private string $expect) {}
+
+    public function matches(\stdClass $payload): bool {
+        // The decoded JWT includes a custom claim containing an array of user roles.
+        return in_array($this->expect, $payload->user_roles ?? [], true);
     }
 }
 
-$verifier->verify($jwt, new MyTokenConstraints([
-    'audience_exact'     => 'https://foo.bar/something',
-    'user_role_contains' => 'administrator'
-]));
+$verifier->verify($jwt, new TokenConstraints(
+    new AudienceExactTokenConstraint('https://foo.bar/something'),
+    new UserRoleContainsTokenConstraint('administrator'),
+));
 
 ```
 
